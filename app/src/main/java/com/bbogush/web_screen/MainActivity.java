@@ -5,22 +5,36 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
 
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
     private HttpServer httpServer = null;
+    private MouseAccessibilityService mouseAccessibilityService;
     private static final int PERM_REQ_INTERNET = 0;
     private static final int PERM_READ_EXTERNAL_STORAGE = 1;
+    private static final int PERM_BIND_ACCESSIBILITY_SERVICE = 2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        View v = findViewById(android.R.id.content).getRootView();
+        if (v != null)
+            v.setOnTouchListener(handleTouch);
+        else
+            Log.d("View", "Not found");
+
+        startActivityForResult(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), 1);
 
         if (requestHttpServerPermissions()) {
             startHttpServer();
@@ -76,26 +90,47 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case PERM_REQ_INTERNET:
             case PERM_READ_EXTERNAL_STORAGE:
+            case PERM_BIND_ACCESSIBILITY_SERVICE:
                 {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // permission was granted, yay! Do the
                     // contacts-related task you need to do.
-                    Log.i("perm", "Internet permission granted");
+                    Log.i("perm", "Permission granted: " + requestCode);
 
                     if (requestHttpServerPermissions())
                         startHttpServer();
                 } else {
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
-                    Log.i("perm", "Internet permission denied");
+                    Log.i("perm", "Permission denied: " + requestCode);
                 }
-                return;
             }
-
-            // other 'case' lines to check for other
-            // permissions this app might request.
         }
     }
+
+    private View.OnTouchListener handleTouch = new View.OnTouchListener() {
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+
+            int x = (int) event.getX();
+            int y = (int) event.getY();
+
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    Log.i("TAG", "touched down");
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    Log.i("TAG", "moving: (" + x + ", " + y + ")");
+                    break;
+                case MotionEvent.ACTION_UP:
+                    Log.i("TAG", "touched up");
+                    break;
+            }
+
+            return true;
+        }
+    };
 }

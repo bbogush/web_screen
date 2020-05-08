@@ -1,7 +1,10 @@
 package com.bbogush.web_screen;
 
 import android.content.res.Resources;
+import android.os.Build;
 import android.util.Log;
+
+import androidx.annotation.RequiresApi;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -11,9 +14,11 @@ import fi.iki.elonen.NanoHTTPD;
 
 public class HttpServer extends NanoHTTPD {
     private static final String MIME_JSON = "application/json";
+    private MouseAccessibilityService mouseAccessibilityService;
 
     public HttpServer(int port) {
         super(port);
+        mouseAccessibilityService = new MouseAccessibilityService();
     }
 
     @Override
@@ -91,11 +96,15 @@ public class HttpServer extends NanoHTTPD {
 //    private String response = "<html><script type='text/javascript'></script><body><h1>Test</h1></body></html>";
 
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     private String handleGet(IHTTPSession session, Map<String, String> parms) {
         //return server.handleRequest("{'name':'status', 'value':''}");
         String x = session.getParms().get("x");
         String y = session.getParms().get("y");
         Log.d("Coord", "x="+ x + "; y=" + y);
+        if (x != null && y != null) {
+            mouseAccessibilityService.tap(Integer.parseInt(x), Integer.parseInt(y));
+        }
         return response;
     }
 
