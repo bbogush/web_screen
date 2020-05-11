@@ -15,10 +15,12 @@ import fi.iki.elonen.NanoHTTPD;
 public class HttpServer extends NanoHTTPD {
     private static final String MIME_JSON = "application/json";
     private MouseAccessibilityService mouseAccessibilityService;
+    private MjpegStream stream;
 
-    public HttpServer(int port) {
+    public HttpServer(MjpegStream stream, int port) {
         super(port);
         mouseAccessibilityService = new MouseAccessibilityService();
+        this.stream = stream;
     }
 
     @Override
@@ -27,8 +29,8 @@ public class HttpServer extends NanoHTTPD {
             Method method = session.getMethod();
             String uri = session.getUri();
             Map<String, String> parms = session.getParms();
-            String responseString = serveClock(session, uri, method, parms);
-            return newFixedLengthResponse(Response.Status.OK, /*MIME_JSON*/MIME_HTML, responseString);
+            return serveRequest(session, uri, method, parms);
+            //newFixedLengthResponse(Response.Status.OK, /*MIME_JSON*/MIME_HTML, responseString);
         } catch (IOException ioe) {
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT,
                     "SERVER INTERNAL ERROR: IOException: " + ioe.getMessage());
@@ -43,25 +45,16 @@ public class HttpServer extends NanoHTTPD {
         }
     }
 
-    private String serveClock(IHTTPSession session, String uri, Method method,
+    private Response serveRequest(IHTTPSession session, String uri, Method method,
                               Map<String, String> parms)  throws IOException, ResponseException {
-        String responseString = "";
-        do {
-            if(Method.GET.equals(method)) {
-                responseString = handleGet(session, parms);
-                break;
-            }
 
-            if(Method.POST.equals(method)) {
-                responseString = handlePost(session);
-                break;
-            }
+        if(Method.GET.equals(method)) {
+            return handleGet(session, uri, parms);
+        }
 
-            throw new Resources.NotFoundException();
+        //throw new Resources.NotFoundException();
 
-        } while(false);
-
-        return responseString;
+        return newFixedLengthResponse(Response.Status.OK, /*MIME_JSON*/MIME_HTML, "");
     }
 
     private String response = "<html>" +
@@ -91,31 +84,35 @@ public class HttpServer extends NanoHTTPD {
             "<input type='text' id='cursorX' size='3'> X-position of the mouse cursor" +
             "<br /><br /> " +
             "<input type='text' id='cursorY' size='3'> Y-position of the mouse cursor " +
+            "<p><p><img src=/mjpeg />" +
             "</body> " +
             "</html>";
 //    private String response = "<html><script type='text/javascript'></script><body><h1>Test</h1></body></html>";
 
 
     @RequiresApi(api = Build.VERSION_CODES.N)
-    private String handleGet(IHTTPSession session, Map<String, String> parms) {
-        //return server.handleRequest("{'name':'status', 'value':''}");
-        String x = session.getParms().get("x");
-        String y = session.getParms().get("y");
-        Log.d("Coord", "x="+ x + "; y=" + y);
-        if (x != null && y != null) {
-            mouseAccessibilityService.tap(Integer.parseInt(x), Integer.parseInt(y));
+    private Response handleGet(IHTTPSession session, String uri, Map<String, String> parms) {
+        if (uri.contentEquals("/")) {
+            String x = session.getParms().get("x");
+            String y = session.getParms().get("y");
+            Log.d("Coord", "x=" + x + "; y=" + y);
+            if (x != null && y != null) {
+                mouseAccessibilityService.tap(Integer.parseInt(x), Integer.parseInt(y));
+            }
+            return newFixedLengthResponse(Response.Status.OK, MIME_HTML, response);
+        } else if (uri.contentEquals("/mjpeg")) {
+            Response res;
+            res = newChunkedResponse(Response.Status.OK,
+                    "multipart/x-mixed-replace; boundary=my_jpeg", stream);
+            res.addHeader("Cache-Control", "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0");
+            res.addHeader("Cache-Control", "private");
+            res.addHeader("Pragma", "no-cache");
+            res.addHeader("Expires", "-1");
+            return res;
         }
-        return response;
+
+        return newFixedLengthResponse(Response.Status.OK, /*MIME_JSON*/MIME_HTML, "");
     }
-
-    private String handlePost(IHTTPSession session) throws IOException, ResponseException {
-        Map<String, String> files = new HashMap<String, String>();
-        session.parseBody(files);
-
-        //return server.handleRequest(files.get("postData"));
-        return "";
-    }
-
 
     private class NotFoundException extends RuntimeException {
     }

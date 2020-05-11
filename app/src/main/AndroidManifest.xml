@@ -30,8 +30,16 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/mouse_accessibility_service_config" />
         </service>
+
+        <service
+            android:name=".AppService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
     </application>
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION" />
 </manifest>
