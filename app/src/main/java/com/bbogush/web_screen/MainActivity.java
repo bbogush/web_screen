@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
         screenCapture.start(mediaProjection);
         mjpegStream = new MjpegStream(screenCapture);
 
-        httpServer = new HttpServer(mjpegStream, 8080);
+        httpServer = new HttpServer(mjpegStream, 8080, getApplicationContext());
         try {
             httpServer.start();
         } catch(IOException ioe) {

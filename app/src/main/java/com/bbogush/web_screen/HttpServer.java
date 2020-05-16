@@ -1,12 +1,18 @@
 package com.bbogush.web_screen;
 
+import android.content.Context;
 import android.content.res.Resources;
 import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,13 +20,16 @@ import fi.iki.elonen.NanoHTTPD;
 
 public class HttpServer extends NanoHTTPD {
     private static final String MIME_JSON = "application/json";
+    private static final String INDEX_HTML = "html/index.html";
     private MouseAccessibilityService mouseAccessibilityService;
     private MjpegStream stream;
+    private Context context;
 
-    public HttpServer(MjpegStream stream, int port) {
+    public HttpServer(MjpegStream stream, int port, Context context) {
         super(port);
         mouseAccessibilityService = new MouseAccessibilityService();
         this.stream = stream;
+        this.context = context;
     }
 
     @Override
@@ -57,41 +66,29 @@ public class HttpServer extends NanoHTTPD {
         return newFixedLengthResponse(Response.Status.OK, /*MIME_JSON*/MIME_HTML, "");
     }
 
-    private String response = "<html>" +
-            "<script type='text/javascript'>" +
-            "window.onload = init;" +
-            "function init() {" +
-            "if (window.Event) {" +
-            "document.captureEvents(Event.CLICK);" +
-            "}" +
-            "document.onclick = getCursorXY;" +
-            "}" +
-            "function getCursorXY(e) {" +
-            "document.getElementById('cursorX').value = (window.Event) ? e.pageX : event.clientX + (document.documentElement.scrollLeft ? document.documentElement.scrollLeft : document.body.scrollLeft);" +
-            "document.getElementById('cursorY').value = (window.Event) ? e.pageY : event.clientY + (document.documentElement.scrollTop ? document.documentElement.scrollTop : document.body.scrollTop);" +
-            "var url = window.location.href;" +
-            "var params = 'x=' + e.pageX+ '&y=' + e.pageY;" +
-            "var http = new XMLHttpRequest();" +
-            "http.open('GET', url+'?' + params, true);" +
-            "http.onreadystatechange = function() {" +
-            "if (http.readyState == 4 && http.status == 200) {"+
-            "};" +
-            "};" +
-            "http.send(null);" +
-            "} " +
-            "</script>" +
-            "<body> " +
-            "<input type='text' id='cursorX' size='3'> X-position of the mouse cursor" +
-            "<br /><br /> " +
-            "<input type='text' id='cursorY' size='3'> Y-position of the mouse cursor " +
-            "<p><p><img src=/mjpeg />" +
-            "</body> " +
-            "</html>";
-//    private String response = "<html><script type='text/javascript'></script><body><h1>Test</h1></body></html>";
+    private String readFile(String fileName) {
+        InputStream fileStream;
+        String string = "";
 
+        try {
+            fileStream = context.getAssets().open(fileName);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(fileStream,
+                    "UTF-8"));
+
+            String line;
+            while ((line = reader.readLine()) != null)
+                string += line;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return string;
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     private Response handleGet(IHTTPSession session, String uri, Map<String, String> parms) {
+        String indexHtml = readFile(INDEX_HTML);
+
         if (uri.contentEquals("/")) {
             String x = session.getParms().get("x");
             String y = session.getParms().get("y");
@@ -99,7 +96,7 @@ public class HttpServer extends NanoHTTPD {
             if (x != null && y != null) {
                 mouseAccessibilityService.tap(Integer.parseInt(x), Integer.parseInt(y));
             }
-            return newFixedLengthResponse(Response.Status.OK, MIME_HTML, response);
+            return newFixedLengthResponse(Response.Status.OK, MIME_HTML, indexHtml);
         } else if (uri.contentEquals("/mjpeg")) {
             Response res;
             res = newChunkedResponse(Response.Status.OK,
