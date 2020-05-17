@@ -14,7 +14,7 @@ public class MjpegStream extends InputStream
 {
     enum State { BOUND, TYPE, LENGTH, JPEG };
 
-    public static final String mBoundary = "my_jpeg";
+    public static final String mBoundary = Utils.randomString(20);
 
     private static final String mContentType = "Content-type: image/jpeg\n";
     private static final String mContentLength = "Content-Length: %d\n\n";

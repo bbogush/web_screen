@@ -99,8 +99,8 @@ public class HttpServer extends NanoHTTPD {
             return newFixedLengthResponse(Response.Status.OK, MIME_HTML, indexHtml);
         } else if (uri.contentEquals("/mjpeg")) {
             Response res;
-            res = newChunkedResponse(Response.Status.OK,
-                    "multipart/x-mixed-replace; boundary=my_jpeg", stream);
+            String mime = "multipart/x-mixed-replace; boundary=" + MjpegStream.mBoundary;
+            res = newChunkedResponse(Response.Status.OK, mime, stream);
             res.addHeader("Cache-Control", "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0");
             res.addHeader("Cache-Control", "private");
             res.addHeader("Pragma", "no-cache");
