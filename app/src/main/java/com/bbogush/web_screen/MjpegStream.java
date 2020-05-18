@@ -14,23 +14,15 @@ public class MjpegStream extends InputStream {
     private static final String contentLength = "Content-Length: %d\n\n";
     public static final String boundaryLine = "\n--" + boundary + "\n";
 
-    private ScreenCapture screenCapture;
-
-    private State state;
-    int len = 0;
+    private State state = State.TYPE;
     private String contentLengthString;
-    int pos;
+    int pos = 0;
 
-    private byte[] byteArray;
-
-    private int lastImageIndex = -1;
-    private static int imageIndex = 0;
+    private byte[] imageByteArray;
+    private ScreenCapture screenCapture;
 
     public MjpegStream(ScreenCapture screenCapture) {
         super();
-
-        state = State.TYPE;
-        pos = 0;
 
         this.screenCapture = screenCapture;
     }
@@ -49,9 +41,6 @@ public class MjpegStream extends InputStream {
     public int read(byte[] buffer, int offset, int length) {
         int copy = 0;
 
-        if(lastImageIndex == imageIndex)
-            return 0;
-
         switch(state) {
             case BOUND:
                 copy = Math.min(length, boundaryLine.length() - pos);
@@ -68,8 +57,7 @@ public class MjpegStream extends InputStream {
                 System.arraycopy(contentType.getBytes(), pos, buffer, 0, copy);
                 pos += copy;
                 if(pos >= contentType.length()) {
-                    len = byteArray.length;
-                    contentLengthString = String.format(contentLength, len);
+                    contentLengthString = String.format(contentLength, imageByteArray.length);
 
                     state = State.LENGTH;
                     pos = 0;
@@ -85,7 +73,7 @@ public class MjpegStream extends InputStream {
                 }
                 break;
             case JPEG:
-                copy = Math.min(length, byteArray.length - pos);
+                copy = Math.min(length, imageByteArray.length - pos);
 
                 if(copy <= 0) {
                     state = State.BOUND;
@@ -93,9 +81,9 @@ public class MjpegStream extends InputStream {
                     copy = -1;
                 }
                 else {
-                    System.arraycopy(byteArray, pos, buffer, 0, copy);
+                    System.arraycopy(imageByteArray, pos, buffer, 0, copy);
                     pos += copy;
-                    if(pos >= byteArray.length) {
+                    if(pos >= imageByteArray.length) {
                         state = State.BOUND;
                         pos = 0;
                     }
@@ -115,6 +103,6 @@ public class MjpegStream extends InputStream {
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-        byteArray = stream.toByteArray();
+        imageByteArray = stream.toByteArray();
     }
 }
