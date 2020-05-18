@@ -52,87 +52,13 @@ public class MjpegStream extends InputStream
     @Override
     public int available() throws IOException
     {
-        switch(state)
-        {
-            case TYPE:
-                if(lastImageIndex == imageIndex)
-                    return 0;
-                Log.d("MjpegStream", "type_len=" + (contentType.length() - pos));
-                return contentType.length() - pos;
-            case LENGTH:
-                Log.d("MjpegStream", "len_len=" + (contentLengthString.length() - pos));
-                return contentLengthString.length() - pos;
-            case JPEG:
-                Log.d("MjpegStream", "barr_len=" + (byteArray.length - pos));
-                return byteArray.length - pos;
-            case BOUND:
-                Log.d("MjpegStream", "next_len=" + (boundaryLine.length() - pos));
-                return boundaryLine.length() - pos;
-        }
-
-        return 0;
+        throw new UnsupportedOperationException("available() method is not implemented");
     }
 
     @Override
     public int read() throws IOException
     {
-        int res = 0;
-
-        if(lastImageIndex == imageIndex)
-            return 0;
-
-        switch(state)
-        {
-            case BOUND:
-                res = boundaryLine.charAt(pos++);
-                if(pos >= boundaryLine.length())
-                {
-                    state = State.TYPE;
-                    pos = 0;
-                }
-                break;
-            case TYPE:
-                res = contentType.charAt(pos++);
-                if(pos >= contentType.length())
-                {
-                    //Log.i("MobileWebCam", "HTTP - MJPEG: next image (" + MobileWebCamHttpService.imageIndex + ")");
-
-// TODO: lock image buffer from now on
-                    synchronized(imageDataLock)
-                    {
-                        len = byteArray.length;
-                        contentLengthString = String.format(contentLength, len);
-                    }
-
-                    lastImageIndex = imageIndex;
-
-                    state = State.LENGTH;
-                    pos = 0;
-                }
-                break;
-            case LENGTH:
-                res = contentLengthString.charAt(pos++);
-                if(pos >= contentLengthString.length())
-                {
-                    state = State.JPEG;
-                    pos = 0;
-                }
-                break;
-            case JPEG:
-                synchronized(imageDataLock)
-                {
-                    //Log.i("MobileWebCam", "HTTP - MJPEG: gImageData " + pos + " of " + MobileWebCamHttpService.gImageData.length);
-                    res = byteArray[pos++];
-                    if(pos >= byteArray.length)
-                    {
-// TODO: unlock image buffer
-                        state = State.BOUND;
-                        pos = 0;
-                    }
-                }
-                break;
-        }
-        return res;
+        throw new UnsupportedOperationException("read() method is not implemented");
     }
 
     @Override
