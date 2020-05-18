@@ -1,14 +1,10 @@
 package com.bbogush.web_screen;
 
 import android.graphics.Bitmap;
-import android.util.Log;
-
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 
-public class MjpegStream extends InputStream
-{
+public class MjpegStream extends InputStream {
     enum State { BOUND, TYPE, LENGTH, JPEG };
 
     private static final int BOUNDARY_LEN = 20;
@@ -30,65 +26,48 @@ public class MjpegStream extends InputStream
     private int lastImageIndex = -1;
     private static int imageIndex = 0;
 
-    public MjpegStream(ScreenCapture screenCapture)
-    {
+    public MjpegStream(ScreenCapture screenCapture) {
         super();
 
         state = State.TYPE;
         pos = 0;
 
         this.screenCapture = screenCapture;
-
-//        int size = bitmap.getRowBytes() * bitmap.getHeight();
-//        ByteBuffer byteBuffer = ByteBuffer.allocate(size);
-//        bitmap.copyPixelsToBuffer(byteBuffer);
-//        byteArray = byteBuffer.array();
-
-        Log.i("MobileWebCam", "HTTP - MJPEG: new input stream");
     }
 
     @Override
-    public int available() throws IOException
-    {
+    public int available() {
         throw new UnsupportedOperationException("available() method is not implemented");
     }
 
     @Override
-    public int read() throws IOException
-    {
+    public int read() {
         throw new UnsupportedOperationException("read() method is not implemented");
     }
 
     @Override
-    public int read(byte[] buffer, int offset, int length) throws IOException
-    {
+    public int read(byte[] buffer, int offset, int length) {
         int copy = 0;
 
         if(lastImageIndex == imageIndex)
             return 0;
 
-        switch(state)
-        {
+        switch(state) {
             case BOUND:
-                //Log.d("MjpegStream", "BOUND");
-
                 copy = Math.min(length, boundaryLine.length() - pos);
                 System.arraycopy(boundaryLine.getBytes(), pos, buffer, 0, copy);
                 pos += copy;
-                if(pos >= boundaryLine.length())
-                {
+                if(pos >= boundaryLine.length()) {
                     pos = 0;
                     state = State.TYPE;
                 }
                 break;
             case TYPE:
                 updateBitmap();
-                //Log.d("MjpegStream", "TYPE");
                 copy = Math.min(length, contentType.length() - pos);
                 System.arraycopy(contentType.getBytes(), pos, buffer, 0, copy);
                 pos += copy;
-                if(pos >= contentType.length())
-                {
+                if(pos >= contentType.length()) {
                     len = byteArray.length;
                     contentLengthString = String.format(contentLength, len);
 
@@ -97,12 +76,10 @@ public class MjpegStream extends InputStream
                 }
                 break;
             case LENGTH:
-                //Log.d("MjpegStream", "LENGTH");
                 copy = Math.min(length, contentLengthString.length() - pos);
                 System.arraycopy(contentLengthString.getBytes(), pos, buffer, 0, copy);
                 pos += copy;
-                if(pos >= contentLengthString.length())
-                {
+                if(pos >= contentLengthString.length()) {
                     state = State.JPEG;
                     pos = 0;
                 }
@@ -110,24 +87,17 @@ public class MjpegStream extends InputStream
             case JPEG:
                 copy = Math.min(length, byteArray.length - pos);
 
-                //Log.i("MobileWebCam", "HTTP - MJPEG: gImageData " + pos + " of " + MobileWebCamHttpService.gImageData.length);
-
-                if(copy <= 0)
-                {
+                if(copy <= 0) {
                     state = State.BOUND;
                     pos = 0;
                     copy = -1;
                 }
-                else
-                {
+                else {
                     System.arraycopy(byteArray, pos, buffer, 0, copy);
                     pos += copy;
-                    if(pos >= byteArray.length)
-                    {
-// TODO: unlock image buffer
+                    if(pos >= byteArray.length) {
                         state = State.BOUND;
                         pos = 0;
-                        //lastImageIndex = imageIndex;
                     }
                 }
                 break;
@@ -139,8 +109,8 @@ public class MjpegStream extends InputStream
         Bitmap bitmap = screenCapture.getBitmap();
         if (bitmap == null) {
             int w = 20, h = 20;
-            Bitmap.Config conf = Bitmap.Config.ARGB_8888; // see other conf types
-            bitmap = Bitmap.createBitmap(w, h, conf); // this creates a MUTABLE bitmap
+            Bitmap.Config conf = Bitmap.Config.ARGB_8888;
+            bitmap = Bitmap.createBitmap(w, h, conf);
         }
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
