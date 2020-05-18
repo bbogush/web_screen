@@ -6,7 +6,6 @@ import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MjpegStream extends InputStream
 {
@@ -18,7 +17,6 @@ public class MjpegStream extends InputStream
     private static final String contentType = "Content-type: image/jpeg\n";
     private static final String contentLength = "Content-Length: %d\n\n";
     public static final String boundaryLine = "\n--" + boundary + "\n";
-    public static AtomicBoolean imageDataLock = new AtomicBoolean(false);
 
     private ScreenCapture screenCapture;
 
@@ -91,13 +89,8 @@ public class MjpegStream extends InputStream
                 pos += copy;
                 if(pos >= contentType.length())
                 {
-                    // TODO: lock image buffer from now on
-// TODO: lock image buffer from now on
-                    synchronized(imageDataLock)
-                    {
-                        len = byteArray.length;
-                        contentLengthString = String.format(contentLength, len);
-                    }
+                    len = byteArray.length;
+                    contentLengthString = String.format(contentLength, len);
 
                     state = State.LENGTH;
                     pos = 0;
@@ -115,30 +108,26 @@ public class MjpegStream extends InputStream
                 }
                 break;
             case JPEG:
-                //Log.d("MjpegStream", "JPEG");
-                synchronized(imageDataLock)
+                copy = Math.min(length, byteArray.length - pos);
+
+                //Log.i("MobileWebCam", "HTTP - MJPEG: gImageData " + pos + " of " + MobileWebCamHttpService.gImageData.length);
+
+                if(copy <= 0)
                 {
-                    copy = Math.min(length, byteArray.length - pos);
-
-                    //Log.i("MobileWebCam", "HTTP - MJPEG: gImageData " + pos + " of " + MobileWebCamHttpService.gImageData.length);
-
-                    if(copy <= 0)
+                    state = State.BOUND;
+                    pos = 0;
+                    copy = -1;
+                }
+                else
+                {
+                    System.arraycopy(byteArray, pos, buffer, 0, copy);
+                    pos += copy;
+                    if(pos >= byteArray.length)
                     {
+// TODO: unlock image buffer
                         state = State.BOUND;
                         pos = 0;
-                        copy = -1;
-                    }
-                    else
-                    {
-                        System.arraycopy(byteArray, pos, buffer, 0, copy);
-                        pos += copy;
-                        if(pos >= byteArray.length)
-                        {
-// TODO: unlock image buffer
-                            state = State.BOUND;
-                            pos = 0;
-                            //lastImageIndex = imageIndex;
-                        }
+                        //lastImageIndex = imageIndex;
                     }
                 }
                 break;
