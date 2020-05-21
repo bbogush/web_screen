@@ -16,13 +16,17 @@ import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.ImageView;
 
 import java.io.IOException;
+import java.lang.annotation.IncompleteAnnotationException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,6 +45,16 @@ public class MainActivity extends AppCompatActivity {
     private boolean accessibilityPermission = false;
     private boolean mediaProjectionPermission = false;
     ScreenCapture screenCapture;
+
+    Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            ImageView imageView = (ImageView) findViewById(R.id.imageView);
+            Bitmap bitmap = screenCapture.getBitmap();
+            if (bitmap != null)
+                imageView.setImageBitmap(bitmap);
+        }
+    };
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -80,14 +94,28 @@ public class MainActivity extends AppCompatActivity {
         screenCapture.start(mediaProjection);
         mjpegStream = new MjpegStream(screenCapture);
 
-        httpServer = new HttpServer(mjpegStream, 8080, getApplicationContext());
+        httpServer = new HttpServer(screenCapture, 8080, getApplicationContext());
         try {
             httpServer.start();
         } catch(IOException ioe) {
             Log.w("Httpd", "The server could not start.");
             ioe.printStackTrace();
+            return;
         }
         Log.w("Httpd", "Web server initialized.");
+
+        new Thread(new Runnable() {
+            public void run(){
+                while (true) {
+                    handler.sendEmptyMessage(0);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        Thread.interrupted();
+                    }
+                }
+            }
+        }).start();
     }
 
     public void startService() {

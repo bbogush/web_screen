@@ -23,11 +23,14 @@ import android.view.WindowManager;
 
 import androidx.annotation.RequiresApi;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class ScreenCapture {
     private Display display;
     private MediaProjection mediaProjection;
     private ImageReader imageReader;
     Bitmap bitmap = null;
+    public AtomicBoolean bitmapDataLock = new AtomicBoolean(false);
     VirtualDisplay virtualDisplay;
     Handler handler = new Handler(Looper.getMainLooper());
 
@@ -70,7 +73,6 @@ public class ScreenCapture {
                 new ImageReader.OnImageAvailableListener() {
                     @Override
                     public void onImageAvailable(ImageReader reader) {
-                        Log.d("ScreenCapture", "setOnImageAvailableListener");
                         Image image = imageReader.acquireLatestImage();
                         if (image != null) {
                             processScreenImage(image);
@@ -97,11 +99,12 @@ public class ScreenCapture {
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     private void processScreenImage(Image image) {
-        Log.d("ScreenCapture", "processScreenImage");
         Image.Plane [] planes = image.getPlanes();
-        bitmap = Bitmap.createBitmap(image.getWidth(), image.getHeight(),
-                Bitmap.Config.ARGB_8888);
-        bitmap.copyPixelsFromBuffer(planes[0].getBuffer());
+        synchronized (bitmapDataLock) {
+            bitmap = Bitmap.createBitmap(image.getWidth(), image.getHeight(),
+                    Bitmap.Config.ARGB_8888);
+            bitmap.copyPixelsFromBuffer(planes[0].getBuffer());
+        }
     }
 
     public Bitmap getBitmap() {

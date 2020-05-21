@@ -22,13 +22,13 @@ public class HttpServer extends NanoHTTPD {
     private static final String MIME_JSON = "application/json";
     private static final String INDEX_HTML = "html/index.html";
     private MouseAccessibilityService mouseAccessibilityService;
-    private MjpegStream stream;
+    private ScreenCapture capture;
     private Context context;
 
-    public HttpServer(MjpegStream stream, int port, Context context) {
+    public HttpServer(ScreenCapture capture, int port, Context context) {
         super(port);
         mouseAccessibilityService = new MouseAccessibilityService();
-        this.stream = stream;
+        this.capture = capture;
         this.context = context;
     }
 
@@ -100,7 +100,7 @@ public class HttpServer extends NanoHTTPD {
         } else if (uri.contentEquals("/mjpeg")) {
             Response res;
             String mime = "multipart/x-mixed-replace; boundary=" + MjpegStream.boundary;
-            res = newChunkedResponse(Response.Status.OK, mime, stream);
+            res = newChunkedResponse(Response.Status.OK, mime, new MjpegStream(capture));
             res.addHeader("Cache-Control", "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0");
             res.addHeader("Cache-Control", "private");
             res.addHeader("Pragma", "no-cache");
