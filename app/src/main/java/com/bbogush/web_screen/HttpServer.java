@@ -6,7 +6,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Map;
+import java.util.List;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -27,15 +27,13 @@ public class HttpServer extends NanoHTTPD {
     public Response serve(IHTTPSession session) {
         Method method = session.getMethod();
         String uri = session.getUri();
-        Map<String, String> params = session.getParms();
 
-        return serveRequest(session, uri, method, params);
+        return serveRequest(session, uri, method);
     }
 
-    private Response serveRequest(IHTTPSession session, String uri, Method method,
-                                  Map<String, String> params) {
+    private Response serveRequest(IHTTPSession session, String uri, Method method) {
         if(Method.GET.equals(method))
-            return handleGet(session, uri, params);
+            return handleGet(session, uri);
 
         return notFoundResponse();
     }
@@ -44,7 +42,7 @@ public class HttpServer extends NanoHTTPD {
         return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "Not Found");
     }
 
-    private Response handleGet(IHTTPSession session, String uri, Map<String, String> params) {
+    private Response handleGet(IHTTPSession session, String uri) {
         if (uri.contentEquals("/")) {
             return handleRootRequest(session);
         } else if (uri.contentEquals("/mjpeg")) {
@@ -56,8 +54,11 @@ public class HttpServer extends NanoHTTPD {
 
     private Response handleRootRequest(IHTTPSession session) {
         String indexHtml = readFile(INDEX_HTML);
-        String x = session.getParms().get("x");
-        String y = session.getParms().get("y");
+        List<String> listX = session.getParameters().get("x");
+        List<String> listY = session.getParameters().get("y");
+        String x = listX == null ? null : (listX.isEmpty() ? null : listX.get(0));
+        String y = listY == null ? null : (listY.isEmpty() ? null : listY.get(0));
+
         Log.d("Coord", "x=" + x + "; y=" + y);
         if (x != null && y != null) {
             mouseAccessibilityService.tap(Integer.parseInt(x), Integer.parseInt(y));
