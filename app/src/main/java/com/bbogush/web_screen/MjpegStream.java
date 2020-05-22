@@ -25,14 +25,12 @@ public class MjpegStream extends InputStream {
     private int pos = 0;
 
     private static final long STREAM_DELAY_MS = 40;
-    private long timestamp;
+    private long timestamp = 0;
 
     public MjpegStream(ScreenCapture screenCapture) {
         super();
 
         this.screenCapture = screenCapture;
-
-        timestamp = System.nanoTime();
     }
 
     @Override
