@@ -8,6 +8,8 @@ import android.hardware.display.VirtualDisplay;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.projection.MediaProjection;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
@@ -20,9 +22,19 @@ public class ScreenCapture {
     public AtomicBoolean bitmapDataLock = new AtomicBoolean(false);
     VirtualDisplay virtualDisplay;
     DisplayMetrics screenMetrics;
+    private Handler handler;
 
     public void start(MediaProjection mediaProjection) {
         screenMetrics = Resources.getSystem().getDisplayMetrics();
+
+        new Thread() {
+            @Override
+            public void run() {
+                Looper.prepare();
+                handler = new Handler();
+                Looper.loop();
+            }
+        }.start();
 
         try {
             imageReader = ImageReader.newInstance(screenMetrics.widthPixels,
@@ -42,13 +54,13 @@ public class ScreenCapture {
                             image.close();
                         }
                     }
-                }, null);
+                }, handler);
 
         try {
             virtualDisplay = mediaProjection.createVirtualDisplay("VirtualDisplay",
                     screenMetrics.widthPixels, screenMetrics.heightPixels, screenMetrics.densityDpi,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, imageReader.getSurface(),
-                    null, null);
+                    null, handler);
         } catch (Exception e) {
             e.printStackTrace();
             return;
