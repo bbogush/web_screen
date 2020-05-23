@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean accessibilityPermission = false;
     private boolean mediaProjectionPermission = false;
     ScreenCapture screenCapture;
+    private boolean isServerStarted = false;
 
     Handler handler = new Handler() {
         @Override
@@ -90,6 +91,9 @@ public class MainActivity extends AppCompatActivity {
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void startHttpServer() {
+        if (isServerStarted)
+            return;
+        isServerStarted = true;
         screenCapture = new ScreenCapture();
         screenCapture.start(mediaProjection);
         mjpegStream = new MjpegStream(screenCapture);
