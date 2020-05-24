@@ -16,11 +16,12 @@ public class HttpServer extends NanoHTTPD {
     private ScreenCapture capture;
     private Context context;
 
-    public HttpServer(ScreenCapture capture, int port, Context context) {
+    public HttpServer(ScreenCapture capture, MouseAccessibilityService mouseAccessibilityService,
+                      int port, Context context) {
         super(port);
-        mouseAccessibilityService = new MouseAccessibilityService();
         this.capture = capture;
         this.context = context;
+        this.mouseAccessibilityService = mouseAccessibilityService;
     }
 
     @Override
@@ -60,7 +61,7 @@ public class HttpServer extends NanoHTTPD {
         String y = listY == null ? null : (listY.isEmpty() ? null : listY.get(0));
 
         Log.d("Coord", "x=" + x + "; y=" + y);
-        if (x != null && y != null) {
+        if (x != null && y != null && mouseAccessibilityService != null) {
             mouseAccessibilityService.tap(Integer.parseInt(x), Integer.parseInt(y));
         }
         return newFixedLengthResponse(Response.Status.OK, MIME_HTML, indexHtml);
@@ -96,5 +97,9 @@ public class HttpServer extends NanoHTTPD {
         res.addHeader("Expires", "-1");
 
         return res;
+    }
+
+    public void setMouseAccessibilityService(MouseAccessibilityService mouseAccessibilityService) {
+        this.mouseAccessibilityService = mouseAccessibilityService;
     }
 }

@@ -24,10 +24,10 @@
         android:text="@string/enable_remote_control" />
 
     <ToggleButton
-        android:id="@+id/toggleButton"
+        android:id="@+id/startButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="ToggleButton"
+        android:checked="false"
         android:textOff="@string/button_start"
         android:textOn="@string/button_stop" />
 

@@ -23,8 +23,13 @@ public class ScreenCapture {
     VirtualDisplay virtualDisplay;
     DisplayMetrics screenMetrics;
     private Handler handler;
+    MediaProjection mediaProjection;
 
-    public void start(MediaProjection mediaProjection) {
+    public ScreenCapture(MediaProjection mediaProjection) {
+        this.mediaProjection = mediaProjection;
+    }
+
+    public void start() {
         screenMetrics = Resources.getSystem().getDisplayMetrics();
 
         new Thread() {
