@@ -8,7 +8,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 public class MjpegStream extends InputStream {
-    private static final String TAG = MjpegStream.class.getSimpleName();;
+    private static final String TAG = MjpegStream.class.getSimpleName();
 
     private static final int BOUNDARY_LEN = 20;
     public static final String boundary = Utils.randomString(BOUNDARY_LEN);
