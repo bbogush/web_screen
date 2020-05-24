@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">WebScreen</string>
+    <string name="connection_url">Connection URL:</string>
+    <string name="enable_remote_control">Enable remote control</string>
+    <string name="button_start">Start</string>
+    <string name="button_stop">Stop</string>
 </resources>
