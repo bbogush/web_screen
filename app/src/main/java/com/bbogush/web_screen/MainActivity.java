@@ -6,12 +6,15 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.CompoundButton;
@@ -32,6 +35,9 @@ public class MainActivity extends AppCompatActivity {
     private MediaProjectionManager mediaProjectionManager;
     ScreenCapture screenCapture;
     private MouseAccessibilityService mouseAccessibilityService = null;
+
+    AppService appService = null;
+    AppServiceConnection serviceConnection = new AppServiceConnection();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,14 +62,10 @@ public class MainActivity extends AppCompatActivity {
                 remoteControlEnable(isChecked);
             }
         });
-
-        //TODO start service on request
-        startService();
     }
 
     @Override
     public void onDestroy() {
-        stopService();
         super.onDestroy();
     }
 
@@ -76,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
         httpServer = null;
         screenCapture.stop();
         screenCapture = null;
+        stopService();
     }
 
     private void checkInternetPermission() {
@@ -92,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
     private void checkExternalStoragePermission() {
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            askMediaProjectionPermission();
+            startService();
             return;
         }
 
@@ -116,11 +119,40 @@ public class MainActivity extends AppCompatActivity {
             case PERM_READ_EXTERNAL_STORAGE:
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    askMediaProjectionPermission();
+                    startService();
                 } else {
                     resetStartButton();
                 }
                 break;
+        }
+    }
+
+    public void startService() {
+        Intent serviceIntent = new Intent(this, AppService.class);
+        ContextCompat.startForegroundService(this, serviceIntent);
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    public void stopService() {
+        Intent serviceIntent = new Intent(this, AppService.class);
+        unbindService(serviceConnection);
+        stopService(serviceIntent);
+    }
+
+    private class AppServiceConnection implements ServiceConnection {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            AppService.AppServiceBinder binder = (AppService.AppServiceBinder)service;
+            appService = binder.getService();
+            Log.d("App", "Service connected");
+            askMediaProjectionPermission();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            appService = null;
+            resetStartButton();
+            Log.d("App", "Service unexpectedly exited");
         }
     }
 
@@ -139,8 +171,10 @@ public class MainActivity extends AppCompatActivity {
                     startMediaProjection(data);
                     startHttpServer();
                 }
-                else
+                else {
                     resetStartButton();
+                    stopService();
+                }
                 break;
             case PERM_ACTION_ACCESSIBILITY_SERVICE:
                 if (isAccessibilityServiceEnabled())
@@ -168,6 +202,7 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "The HTTP server could not start");
             ioe.printStackTrace();
             resetStartButton();
+            stopService();
         }
     }
 
@@ -214,16 +249,5 @@ public class MainActivity extends AppCompatActivity {
             enableAccessibilityService(false);
         }
 
-    }
-
-    public void startService() {
-        Intent serviceIntent = new Intent(this, AppService.class);
-        serviceIntent.putExtra("inputExtra", "WebScreen Foreground Service");
-        ContextCompat.startForegroundService(this, serviceIntent);
-    }
-
-    public void stopService() {
-        Intent serviceIntent = new Intent(this, AppService.class);
-        stopService(serviceIntent);
     }
 }

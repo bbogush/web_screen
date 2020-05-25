@@ -8,8 +8,10 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -17,6 +19,17 @@ import androidx.core.app.NotificationCompat;
 public class AppService extends Service {
     // Unique notification identifier
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
+    private final IBinder iBinder = new AppServiceBinder();
+
+    @Override
+    public void onCreate() {
+        Log.d("Ser", "Service created");
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.d("Ser", "Service destroyed");
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -34,6 +47,7 @@ public class AppService extends Service {
         startForeground(1, notification);
         //do heavy work on a background thread
         //stopSelf();
+        Log.d("Ser", "Service started");
         return START_NOT_STICKY;
     }
 
@@ -49,9 +63,15 @@ public class AppService extends Service {
         }
     }
 
+    public class AppServiceBinder extends Binder {
+        AppService getService() {
+            return AppService.this;
+        }
+    }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return iBinder;
     }
 }
