@@ -1,6 +1,6 @@
 package com.bbogush.web_screen;
 
-import android.content.res.Resources;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
@@ -11,27 +11,40 @@ import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
-import android.util.Log;
+import android.view.Display;
+import android.view.OrientationEventListener;
+import android.view.WindowManager;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ScreenCapture {
-    private ImageReader imageReader;
-    Bitmap bitmap = null;
-    public AtomicBoolean bitmapDataLock = new AtomicBoolean(false);
-    VirtualDisplay virtualDisplay;
-    DisplayMetrics screenMetrics;
-    private Handler handler;
-    MediaProjection mediaProjection;
+    private static final String VIRTUAL_DISPLAY_NAME = "ScreenCaptureVirtualDisplay";
 
-    public ScreenCapture(MediaProjection mediaProjection) {
+    private MediaProjection mediaProjection;
+    private VirtualDisplay virtualDisplay = null;
+    private ImageReader imageReader = null;
+
+    Context context;
+    private Display display;
+    private DisplayMetrics screenMetrics = new DisplayMetrics();
+    private OrientationChangeCallback orientationChangeCallback = null;
+    private int rotation;
+
+    private Handler handler = null;
+
+    private Bitmap bitmap = null;
+    public AtomicBoolean bitmapDataLock = new AtomicBoolean(false);
+
+    public ScreenCapture(MediaProjection mediaProjection, Context context) {
         this.mediaProjection = mediaProjection;
+        this.context = context;
+
+        WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
+        display = wm.getDefaultDisplay();
     }
 
     public void start() {
-        screenMetrics = Resources.getSystem().getDisplayMetrics();
-
         new Thread() {
             @Override
             public void run() {
@@ -41,40 +54,58 @@ public class ScreenCapture {
             }
         }.start();
 
-        try {
-            imageReader = ImageReader.newInstance(screenMetrics.widthPixels,
-                    screenMetrics.heightPixels, PixelFormat.RGBA_8888, 2);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
+        createVirtualDisplay();
 
-        imageReader.setOnImageAvailableListener(
-                new ImageReader.OnImageAvailableListener() {
-                    @Override
-                    public void onImageAvailable(ImageReader reader) {
-                        Image image = imageReader.acquireLatestImage();
-                        if (image != null) {
-                            processScreenImage(image);
-                            image.close();
-                        }
-                    }
-                }, handler);
-
-        try {
-            virtualDisplay = mediaProjection.createVirtualDisplay("VirtualDisplay",
-                    screenMetrics.widthPixels, screenMetrics.heightPixels, screenMetrics.densityDpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, imageReader.getSurface(),
-                    null, handler);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
+        orientationChangeCallback = new OrientationChangeCallback(context);
+        if (orientationChangeCallback.canDetectOrientation()) {
+            orientationChangeCallback.enable();
         }
+        rotation = display.getRotation();
+
+        mediaProjection.registerCallback(new MediaProjectionStopCallback(), handler);
     }
 
     public void stop() {
-        imageReader.close();
-        virtualDisplay.release();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                mediaProjection.stop();
+            }
+        });
+    }
+
+    private void createVirtualDisplay() {
+        display.getMetrics(screenMetrics);
+
+        imageReader = ImageReader.newInstance(screenMetrics.widthPixels,
+                screenMetrics.heightPixels, PixelFormat.RGBA_8888, 2);
+
+        virtualDisplay = mediaProjection.createVirtualDisplay(VIRTUAL_DISPLAY_NAME,
+                screenMetrics.widthPixels, screenMetrics.heightPixels, screenMetrics.densityDpi,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION, imageReader.getSurface(),
+                null, handler);
+
+        imageReader.setOnImageAvailableListener(new ImageAvailableListener(), handler);
+    }
+
+    private void releaseVirtualDisplay() {
+        if (virtualDisplay != null)
+            virtualDisplay.release();
+        if (imageReader != null)
+            imageReader.setOnImageAvailableListener(null, null);
+    }
+
+    private class ImageAvailableListener implements ImageReader.OnImageAvailableListener {
+        @Override
+        public void onImageAvailable(ImageReader reader) {
+            synchronized (bitmapDataLock) {
+                Image image = imageReader.acquireLatestImage();
+                if (image != null) {
+                    processScreenImage(image);
+                    image.close();
+                }
+            }
+        }
     }
 
     private void processScreenImage(Image image) {
@@ -84,7 +115,7 @@ public class ScreenCapture {
 
         synchronized (bitmapDataLock) {
             if (width > image.getWidth()) {
-                Bitmap tempBitmap = Bitmap.createBitmap(width, screenMetrics.heightPixels,
+                Bitmap tempBitmap = Bitmap.createBitmap(width, image.getHeight(),
                         Bitmap.Config.ARGB_8888);
                 tempBitmap.copyPixelsFromBuffer(buffer);
                 bitmap = Bitmap.createBitmap(tempBitmap, 0, 0, image.getWidth(),
@@ -93,6 +124,42 @@ public class ScreenCapture {
                 bitmap = Bitmap.createBitmap(image.getWidth(), image.getHeight(),
                         Bitmap.Config.ARGB_8888);
                 bitmap.copyPixelsFromBuffer(planes[0].getBuffer());
+            }
+        }
+    }
+
+    private class MediaProjectionStopCallback extends MediaProjection.Callback {
+        @Override
+        public void onStop() {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    releaseVirtualDisplay();
+                    if (orientationChangeCallback != null)
+                        orientationChangeCallback.disable();
+                    mediaProjection.unregisterCallback(MediaProjectionStopCallback.this);
+                }
+            });
+        }
+    }
+
+    private class OrientationChangeCallback extends OrientationEventListener {
+
+        OrientationChangeCallback(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void onOrientationChanged(int orientation) {
+            final int r = display.getRotation();
+            if (r != rotation) {
+                rotation = r;
+                try {
+                    releaseVirtualDisplay();
+                    createVirtualDisplay();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

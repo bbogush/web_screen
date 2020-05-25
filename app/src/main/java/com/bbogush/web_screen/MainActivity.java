@@ -155,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
     private void startMediaProjection(Intent data) {
         MediaProjection mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK,
                 data);
-        screenCapture = new ScreenCapture(mediaProjection);
+        screenCapture = new ScreenCapture(mediaProjection, getApplicationContext());
         screenCapture.start();
     }
 
