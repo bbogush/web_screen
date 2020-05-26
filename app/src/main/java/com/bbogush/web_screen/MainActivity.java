@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERM_ACTION_ACCESSIBILITY_SERVICE = 2;
     private static final int PERM_MEDIA_PROJECTION_SERVICE = 3;
 
+    private static final int HTTP_SERVER_PORT = 8080;
     private HttpServer httpServer = null;
     private MediaProjectionManager mediaProjectionManager;
     ScreenCapture screenCapture;
@@ -217,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void startHttpServer() {
         httpServer = new HttpServer(screenCapture, mouseAccessibilityService,
-                8080, getApplicationContext());
+                HTTP_SERVER_PORT, getApplicationContext());
         appService.startHttpServer(httpServer);
     }
 
