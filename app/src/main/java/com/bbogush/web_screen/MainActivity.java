@@ -5,6 +5,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
@@ -37,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private MouseAccessibilityService mouseAccessibilityService = null;
 
     AppService appService = null;
-    AppServiceConnection serviceConnection = new AppServiceConnection();
+    AppServiceConnection serviceConnection = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,9 +50,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked)
-                    serverStart();
+                    start();
                 else
-                    serverStop();
+                    stop();
             }
         });
 
@@ -66,18 +67,23 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onDestroy() {
+        unbindService();
         super.onDestroy();
     }
 
-    private void serverStart() {
+    private void start() {
+        if (AppService.isServiceRunning()) {
+            bindService();
+            return;
+        }
+
         checkInternetPermission();
     }
 
-    private void serverStop() {
-        httpServer.stop();
-        httpServer = null;
-        screenCapture.stop();
-        screenCapture = null;
+    private void stop() {
+        if (!AppService.isServiceRunning())
+            return;
+
         stopService();
     }
 
@@ -127,16 +133,31 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void startService() {
+    private void startService() {
         Intent serviceIntent = new Intent(this, AppService.class);
         ContextCompat.startForegroundService(this, serviceIntent);
+        serviceConnection = new AppServiceConnection();
         bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
-    public void stopService() {
+    private void stopService() {
+        unbindService();
         Intent serviceIntent = new Intent(this, AppService.class);
-        unbindService(serviceConnection);
         stopService(serviceIntent);
+    }
+
+    private void bindService() {
+        Intent serviceIntent = new Intent(this, AppService.class);
+        serviceConnection = new AppServiceConnection();
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void unbindService() {
+        if (serviceConnection == null)
+            return;
+
+        unbindService(serviceConnection);
+        serviceConnection = null;
     }
 
     private class AppServiceConnection implements ServiceConnection {
@@ -144,15 +165,16 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             AppService.AppServiceBinder binder = (AppService.AppServiceBinder)service;
             appService = binder.getService();
-            Log.d("App", "Service connected");
-            askMediaProjectionPermission();
+
+            if (!appService.isHttpServerRunning())
+                askMediaProjectionPermission();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             appService = null;
             resetStartButton();
-            Log.d("App", "Service unexpectedly exited");
+            Log.e(TAG, "Service unexpectedly exited");
         }
     }
 
@@ -190,20 +212,13 @@ public class MainActivity extends AppCompatActivity {
         MediaProjection mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK,
                 data);
         screenCapture = new ScreenCapture(mediaProjection, getApplicationContext());
-        screenCapture.start();
+        appService.startScreenCapture(screenCapture);
     }
 
     private void startHttpServer() {
         httpServer = new HttpServer(screenCapture, mouseAccessibilityService,
                 8080, getApplicationContext());
-        try {
-            httpServer.start();
-        } catch(IOException ioe) {
-            Log.e(TAG, "The HTTP server could not start");
-            ioe.printStackTrace();
-            resetStartButton();
-            stopService();
-        }
+        appService.startHttpServer(httpServer);
     }
 
     private void resetStartButton() {
