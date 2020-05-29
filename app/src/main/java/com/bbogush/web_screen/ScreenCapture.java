@@ -77,10 +77,10 @@ public class ScreenCapture {
             @Override
             public void run() {
                 Log.d(TAG, "Rotation detector start");
-                display.getMetrics(screenMetrics);
+                display.getRealMetrics(screenMetrics);
                 while (true) {
                     DisplayMetrics metrics = new DisplayMetrics();
-                    display.getMetrics(metrics);
+                    display.getRealMetrics(metrics);
                     if (metrics.widthPixels != screenMetrics.widthPixels ||
                             metrics.heightPixels != screenMetrics.heightPixels) {
                         Log.d(TAG, "Rotation detected");
@@ -106,7 +106,7 @@ public class ScreenCapture {
     }
 
     private void createVirtualDisplay() {
-        display.getMetrics(screenMetrics);
+        display.getRealMetrics(screenMetrics);
 
         imageReader = ImageReader.newInstance(screenMetrics.widthPixels,
                 screenMetrics.heightPixels, PixelFormat.RGBA_8888, 2);
