@@ -11,14 +11,16 @@ import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
-import android.view.OrientationEventListener;
 import android.view.WindowManager;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ScreenCapture {
+    private static final String TAG = ScreenCapture.class.getSimpleName();
+
     private static final String VIRTUAL_DISPLAY_NAME = "ScreenCaptureVirtualDisplay";
 
     private MediaProjection mediaProjection;
@@ -28,8 +30,7 @@ public class ScreenCapture {
     Context context;
     private Display display;
     private DisplayMetrics screenMetrics = new DisplayMetrics();
-    private OrientationChangeCallback orientationChangeCallback = null;
-    private int rotation;
+    private Thread rotationDetectorThread;
 
     private Handler handler = null;
 
@@ -56,22 +57,52 @@ public class ScreenCapture {
 
         createVirtualDisplay();
 
-        orientationChangeCallback = new OrientationChangeCallback(context);
-        if (orientationChangeCallback.canDetectOrientation()) {
-            orientationChangeCallback.enable();
-        }
-        rotation = display.getRotation();
+        startRotationDetector();
 
         mediaProjection.registerCallback(new MediaProjectionStopCallback(), handler);
     }
 
     public void stop() {
+        stopRotationDetector();
         handler.post(new Runnable() {
             @Override
             public void run() {
                 mediaProjection.stop();
             }
         });
+    }
+
+    private void startRotationDetector() {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "Rotation detector start");
+                display.getMetrics(screenMetrics);
+                while (true) {
+                    DisplayMetrics metrics = new DisplayMetrics();
+                    display.getMetrics(metrics);
+                    if (metrics.widthPixels != screenMetrics.widthPixels ||
+                            metrics.heightPixels != screenMetrics.heightPixels) {
+                        Log.d(TAG, "Rotation detected");
+                        screenMetrics = metrics;
+                        releaseVirtualDisplay();
+                        createVirtualDisplay();
+                    }
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        Log.d(TAG, "Rotation detector exit");
+                        Thread.interrupted();
+                    }
+                }
+            }
+        };
+        rotationDetectorThread = new Thread(runnable);
+        rotationDetectorThread.start();
+    }
+
+    private void stopRotationDetector() {
+        rotationDetectorThread.interrupt();
     }
 
     private void createVirtualDisplay() {
@@ -135,32 +166,9 @@ public class ScreenCapture {
                 @Override
                 public void run() {
                     releaseVirtualDisplay();
-                    if (orientationChangeCallback != null)
-                        orientationChangeCallback.disable();
                     mediaProjection.unregisterCallback(MediaProjectionStopCallback.this);
                 }
             });
-        }
-    }
-
-    private class OrientationChangeCallback extends OrientationEventListener {
-
-        OrientationChangeCallback(Context context) {
-            super(context);
-        }
-
-        @Override
-        public void onOrientationChanged(int orientation) {
-            final int r = display.getRotation();
-            if (r != rotation) {
-                rotation = r;
-                try {
-                    releaseVirtualDisplay();
-                    createVirtualDisplay();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
