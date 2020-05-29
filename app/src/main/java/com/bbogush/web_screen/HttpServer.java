@@ -60,9 +60,8 @@ public class HttpServer extends NanoHTTPD {
         String x = listX == null ? null : (listX.isEmpty() ? null : listX.get(0));
         String y = listY == null ? null : (listY.isEmpty() ? null : listY.get(0));
 
-        Log.d("Coord", "x=" + x + "; y=" + y);
         if (x != null && y != null && mouseAccessibilityService != null) {
-            mouseAccessibilityService.tap(Integer.parseInt(x), Integer.parseInt(y));
+            mouseAccessibilityService.click(Integer.parseInt(x), Integer.parseInt(y));
         }
         return newFixedLengthResponse(Response.Status.OK, MIME_HTML, indexHtml);
     }
