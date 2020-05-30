@@ -64,12 +64,15 @@ public class MainActivity extends AppCompatActivity {
                 remoteControlEnable(isChecked);
             }
         });
+
+        Log.d(TAG, "Activity created");
     }
 
     @Override
     public void onDestroy() {
         unbindService();
         super.onDestroy();
+        Log.d(TAG, "Activity destroyed");
     }
 
     private void start() {
