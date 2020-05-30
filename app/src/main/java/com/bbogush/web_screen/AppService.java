@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.os.Binder;
@@ -13,6 +14,7 @@ import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 
 import java.io.IOException;
@@ -20,9 +22,16 @@ import java.io.IOException;
 public class AppService extends Service {
     private static final String TAG = AppService.class.getSimpleName();
 
+    private static final int SERVICE_ID = 101;
+
+    private static final String NOTIFICATION_CHANNEL_ID = "WebScreenServiceChannel";
+    private static final String NOTIFICATION_CHANNEL_NAME = "WebScreen notification channel";
+
+    private static final String NOTIFICATION_TITLE = "WebScreen is running";
+    private static final String NOTIFICATION_CONTENT = "Tap to stop";
+
     private static boolean isRunning = false;
 
-    public static final String CHANNEL_ID = "ForegroundServiceChannel";
     private final IBinder iBinder = new AppServiceBinder();
 
     private ScreenCapture screenCapture;
@@ -49,32 +58,38 @@ public class AppService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        createNotificationChannel();
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0, notificationIntent, 0);
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Foreground Service")
-                .setContentText("Content text")
-                //TODO .setSmallIcon(R.drawable.ic_launcher_foreground)
+
+        String channelId = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                createNotificationChannel() : "";
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this,
+                channelId);
+        Notification notification = notificationBuilder.setOngoing(true)
+                .setContentTitle(NOTIFICATION_TITLE)
+                .setContentText(NOTIFICATION_CONTENT)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 .setContentIntent(pendingIntent)
                 .build();
-        startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+
+        startForeground(SERVICE_ID, notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
 
         Log.d(TAG, "Service started");
         return START_STICKY;
     }
 
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel serviceChannel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Foreground Service Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(serviceChannel);
-        }
+    @RequiresApi(Build.VERSION_CODES.O)
+    private String createNotificationChannel(){
+        NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
+                NOTIFICATION_CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
+
+        NotificationManager notificationManager = (NotificationManager)
+                getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.createNotificationChannel(channel);
+        return NOTIFICATION_CHANNEL_ID;
     }
 
     public class AppServiceBinder extends Binder {
