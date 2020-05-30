@@ -5,10 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
-import android.graphics.BitmapFactory;
-import android.media.projection.MediaProjectionManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
@@ -24,7 +21,6 @@ public class AppService extends Service {
 
     private static boolean isRunning = false;
 
-    // Unique notification identifier
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
     private final IBinder iBinder = new AppServiceBinder();
 
@@ -35,6 +31,7 @@ public class AppService extends Service {
     @Override
     public void onCreate() {
         isRunning = true;
+        Log.d(TAG, "Service created");
     }
 
     @Override
@@ -42,6 +39,7 @@ public class AppService extends Service {
         httpServer.stop();
         screenCapture.stop();
         isRunning = false;
+        Log.d(TAG, "Service destroyed");
     }
 
     public static boolean isServiceRunning() {
@@ -57,13 +55,12 @@ public class AppService extends Service {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Foreground Service")
                 .setContentText("Content text")
-                //.setSmallIcon(R.drawable.ic_launcher_foreground)
+                //TODO .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentIntent(pendingIntent)
                 .build();
         startForeground(1, notification);
-        //do heavy work on a background thread
-        //stopSelf();
-        Log.d("Ser", "Service started");
+
+        Log.d(TAG, "Service started");
         return START_STICKY;
     }
 
