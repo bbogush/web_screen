@@ -101,4 +101,8 @@ public class HttpServer extends NanoHTTPD {
     public void setMouseAccessibilityService(MouseAccessibilityService mouseAccessibilityService) {
         this.mouseAccessibilityService = mouseAccessibilityService;
     }
+
+    public MouseAccessibilityService getMouseAccessibilityService() {
+        return mouseAccessibilityService;
+    }
 }

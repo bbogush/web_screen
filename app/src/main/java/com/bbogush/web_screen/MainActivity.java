@@ -43,6 +43,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "Activity create");
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -65,17 +67,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Log.d(TAG, "Activity created");
+        if (AppService.isServiceRunning())
+            setStartButton();
     }
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "Activity destroy");
+
         unbindService();
         super.onDestroy();
-        Log.d(TAG, "Activity destroyed");
     }
 
     private void start() {
+        Log.d(TAG, "Stream start");
         if (AppService.isServiceRunning()) {
             bindService();
             return;
@@ -85,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void stop() {
+        Log.d(TAG, "Stream stop");
         if (!AppService.isServiceRunning())
             return;
 
@@ -170,8 +176,15 @@ public class MainActivity extends AppCompatActivity {
             AppService.AppServiceBinder binder = (AppService.AppServiceBinder)service;
             appService = binder.getService();
 
-            if (!appService.isHttpServerRunning())
+            httpServer = appService.getHttpServer();
+            if (httpServer == null)
                 askMediaProjectionPermission();
+            else {
+                mouseAccessibilityService = httpServer.getMouseAccessibilityService();
+                if (mouseAccessibilityService != null) {
+                    setRemoteControlSwitch();
+                }
+            }
         }
 
         @Override
@@ -216,13 +229,20 @@ public class MainActivity extends AppCompatActivity {
         MediaProjection mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK,
                 data);
         screenCapture = new ScreenCapture(mediaProjection, getApplicationContext());
-        appService.startScreenCapture(screenCapture);
+        appService.setScreenCapture(screenCapture);
+        appService.startScreenCapture();
     }
 
     private void startHttpServer() {
         httpServer = new HttpServer(screenCapture, mouseAccessibilityService,
                 HTTP_SERVER_PORT, getApplicationContext());
-        appService.startHttpServer(httpServer);
+        appService.setHttpServer(httpServer);
+        appService.startHttpServer();
+    }
+
+    private void setStartButton() {
+        ToggleButton startButton = findViewById(R.id.startButton);
+        startButton.setChecked(true);
     }
 
     private void resetStartButton() {
@@ -232,6 +252,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void enableAccessibilityService(boolean isEnabled) {
         if (isEnabled) {
+            if (httpServer != null && httpServer.getMouseAccessibilityService() != null)
+                return;
             mouseAccessibilityService = new MouseAccessibilityService();
             if (httpServer != null)
                 httpServer.setMouseAccessibilityService(mouseAccessibilityService);
@@ -249,6 +271,11 @@ public class MainActivity extends AppCompatActivity {
         String enabledList = Settings.Secure.getString(context.getContentResolver(),
                 Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
         return enabledList != null && enabledList.contains(flatName);
+    }
+
+    private void setRemoteControlSwitch() {
+        Switch remoteControl = findViewById(R.id.remoteControlEnableSwitch);
+        remoteControl.setChecked(true);
     }
 
     private void resetRemoteControlSwitch() {

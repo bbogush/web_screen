@@ -34,9 +34,8 @@ public class AppService extends Service {
 
     private final IBinder iBinder = new AppServiceBinder();
 
-    private ScreenCapture screenCapture;
-    private HttpServer httpServer;
-    private boolean isServerRunning = false;
+    private ScreenCapture screenCapture = null;
+    private HttpServer httpServer = null;
 
     @Override
     public void onCreate() {
@@ -46,8 +45,8 @@ public class AppService extends Service {
 
     @Override
     public void onDestroy() {
-        httpServer.stop();
-        screenCapture.stop();
+        stopHttpServer();
+        stopScreenCapture();
         isRunning = false;
         Log.d(TAG, "Service destroyed");
     }
@@ -107,13 +106,38 @@ public class AppService extends Service {
         return iBinder;
     }
 
-    public void startScreenCapture(ScreenCapture capture) {
+    public void setScreenCapture(ScreenCapture capture) {
         screenCapture = capture;
+    }
+
+    public void startScreenCapture() {
+        if (screenCapture == null)
+            return;
         screenCapture.start();
     }
 
-    public void startHttpServer(HttpServer server) {
+    public void stopScreenCapture() {
+        if (screenCapture == null)
+            return;
+        screenCapture.stop();
+    }
+
+    public ScreenCapture getScreenCapture() {
+        return screenCapture;
+    }
+
+    public void setHttpServer(HttpServer server) {
         httpServer = server;
+    }
+
+    public HttpServer getHttpServer() {
+        return httpServer;
+    }
+
+    public void startHttpServer() {
+        if (httpServer == null)
+            return;
+
         try {
             httpServer.start();
         } catch(IOException ioe) {
@@ -121,11 +145,11 @@ public class AppService extends Service {
             ioe.printStackTrace();
             return;
         }
-
-        isServerRunning = true;
     }
 
-    public boolean isHttpServerRunning() {
-        return isServerRunning;
+    public void stopHttpServer() {
+        if (httpServer == null)
+            return;
+        httpServer.stop();
     }
 }
