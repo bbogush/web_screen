@@ -76,8 +76,7 @@ public class AppService extends Service {
                 .setContentIntent(pendingIntent)
                 .build();
 
-        startForeground(SERVICE_ID, notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+        startForeground(SERVICE_ID, notification);
 
         Log.d(TAG, "Service started");
         return START_STICKY;
