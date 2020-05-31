@@ -90,8 +90,8 @@ public class HttpServer extends NanoHTTPD {
         String mime = "multipart/x-mixed-replace; boundary=" + MjpegStream.boundary;
         res = newChunkedResponse(Response.Status.OK, mime, new MjpegStream(capture));
         res.addHeader("Cache-Control",
-                "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0");
-        res.addHeader("Cache-Control", "private");
+                "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0," +
+                        "private");
         res.addHeader("Pragma", "no-cache");
         res.addHeader("Expires", "-1");
 
