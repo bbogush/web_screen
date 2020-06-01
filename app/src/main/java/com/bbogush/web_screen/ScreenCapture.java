@@ -83,7 +83,8 @@ public class ScreenCapture {
                     display.getRealMetrics(metrics);
                     if (metrics.widthPixels != screenMetrics.widthPixels ||
                             metrics.heightPixels != screenMetrics.heightPixels) {
-                        Log.d(TAG, "Rotation detected");
+                        Log.d(TAG, "Rotation detected\n" + "w=" + metrics.widthPixels + " h=" +
+                                metrics.heightPixels + " d=" + metrics.densityDpi);
                         screenMetrics = metrics;
                         releaseVirtualDisplay();
                         createVirtualDisplay();
