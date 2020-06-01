@@ -1,32 +1,31 @@
 <html>
-<script type='text/javascript'>
-    window.onload = init;
+    <script type='text/javascript'>
+        window.onload = init;
 
-    function init() {
-        document.getElementById('screen').addEventListener('click', sendClick);
+        function init() {
+            document.getElementById('screen').addEventListener('click', sendClick);
+        }
 
-    }
+        function getPosition(e) {
+            var rect = e.target.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            var y = e.clientY - rect.top;
 
-    function getPosition(e) {
-        var rect = e.target.getBoundingClientRect();
-        var x = e.clientX - rect.left;
-        var y = e.clientY - rect.top;
+            x = Math.round(x * e.target.naturalWidth * 1.0 / e.target.width);
+            y = Math.round(y * e.target.naturalHeight * 1.0 / e.target.height);
 
-        x = Math.round(x * e.target.naturalWidth * 1.0 / e.target.width);
-        y = Math.round(y * e.target.naturalHeight * 1.0 / e.target.height);
+            return {x, y};
+        }
 
-        return {x, y};
-    }
-
-    function sendClick(e) {
-        var position = getPosition(e);
-        var url = window.location.href;
-        var params = 'x=' + position.x + '&y=' + position.y;
-        var http = new XMLHttpRequest();
-        http.open('GET', url+'?' + params, true);
-        http.send(null);
-    }
-</script>
+        function sendClick(e) {
+            var position = getPosition(e);
+            var url = window.location.href;
+            var params = 'x=' + position.x + '&y=' + position.y;
+            var http = new XMLHttpRequest();
+            http.open('GET', url+'?' + params, true);
+            http.send(null);
+        }
+    </script>
     <style>
         body, html {
             width: 100%;
