@@ -3,13 +3,18 @@
     window.onload = init;
 
     function init() {
-        document.getElementById('screen').addEventListener('click', sendClick)
+        document.getElementById('screen').addEventListener('click', sendClick);
+
     }
 
     function getPosition(e) {
         var rect = e.target.getBoundingClientRect();
         var x = e.clientX - rect.left;
         var y = e.clientY - rect.top;
+
+        x = Math.round(x * e.target.naturalWidth * 1.0 / e.target.width);
+        y = Math.round(y * e.target.naturalHeight * 1.0 / e.target.height);
+
         return {x, y};
     }
 
@@ -22,6 +27,32 @@
         http.send(null);
     }
 </script>
+    <style>
+        body, html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            border: 0;
+            overflow: hidden;
+            display: block;
+            font-family: sans-serif
+        }
+
+        body {
+            background: #112233
+        }
+
+        img {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin: auto;
+            max-height: 100vh;
+            max-width: 100%
+        }
+    </style>
 <body>
     <img id="screen" src=/mjpeg />
 </body>
