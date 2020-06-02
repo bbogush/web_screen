@@ -12,10 +12,11 @@
         android:layout_height="wrap_content"
         android:text="@string/connection_url" />
 
-    <TextView
-        android:id="@+id/urlTextView"
+    <LinearLayout
+        android:id="@+id/urlLinerLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"/>
 
     <Switch
         android:id="@+id/remoteControlEnableSwitch"

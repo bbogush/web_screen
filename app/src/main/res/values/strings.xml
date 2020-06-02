@@ -4,4 +4,5 @@
     <string name="enable_remote_control">Enable remote control</string>
     <string name="button_start">Start</string>
     <string name="button_stop">Stop</string>
+    <string name="no_active_connections">No active connections</string>
 </resources>

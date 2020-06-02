@@ -12,22 +12,34 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
+import android.net.LinkAddress;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.CompoundButton;
+import android.widget.LinearLayout;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.ToggleButton;
+
+import java.net.Inet6Address;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private static final int PERM_INTERNET = 0;
-    private static final int PERM_READ_EXTERNAL_STORAGE = 1;
-    private static final int PERM_FOREGROUND_SERVICE = 2;
-    private static final int PERM_ACTION_ACCESSIBILITY_SERVICE = 3;
-    private static final int PERM_MEDIA_PROJECTION_SERVICE = 4;
+    private static final int PERM_ACCESS_NETWORK_STATE = 0;
+    private static final int PERM_INTERNET = 1;
+    private static final int PERM_READ_EXTERNAL_STORAGE = 2;
+    private static final int PERM_FOREGROUND_SERVICE = 3;
+    private static final int PERM_ACTION_ACCESSIBILITY_SERVICE = 4;
+    private static final int PERM_MEDIA_PROJECTION_SERVICE = 5;
+
+    private static final int HANDLER_MESSAGE_UPDATE_NETWORK = 0;
 
     private static final int HTTP_SERVER_PORT = 8080;
     private HttpServer httpServer = null;
@@ -37,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
 
     AppService appService = null;
     AppServiceConnection serviceConnection = null;
+
+    private NetworkHelper networkHelper = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,12 +80,16 @@ public class MainActivity extends AppCompatActivity {
 
         if (AppService.isServiceRunning())
             setStartButton();
+
+        createUrl();
     }
 
     @Override
     public void onDestroy() {
         Log.d(TAG, "Activity destroy");
 
+        if (networkHelper != null)
+            networkHelper.close();
         unbindService();
         super.onDestroy();
     }
@@ -133,6 +151,14 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         switch (requestCode) {
+            case PERM_ACCESS_NETWORK_STATE:
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    networkHelper = new NetworkHelper(getApplicationContext(),
+                            onNetworkChangeListener);
+                    urlUpdate();
+                }
+                break;
             case PERM_INTERNET:
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -313,4 +339,84 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+
+    public void createUrl() {
+        LinearLayout urlLayout = findViewById(R.id.urlLinerLayout);
+        TextView interfaceTextView = new TextView(this);
+        interfaceTextView.setText(getResources().getString(R.string.no_active_connections));
+        urlLayout.addView(interfaceTextView);
+        checkNetworkStatePermission();
+    }
+
+    private void checkNetworkStatePermission() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED) {
+            networkHelper = new NetworkHelper(getApplicationContext(), onNetworkChangeListener);
+            urlUpdate();
+            return;
+        }
+
+        ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.ACCESS_NETWORK_STATE }, PERM_ACCESS_NETWORK_STATE);
+    }
+
+    private NetworkHelper.OnNetworkChangeListener onNetworkChangeListener =
+            new NetworkHelper.OnNetworkChangeListener() {
+                @Override
+                public void onChange() {
+                    // Interfaces need some time to update
+                    handler.sendEmptyMessageDelayed(HANDLER_MESSAGE_UPDATE_NETWORK, 1000);
+                }
+            };
+
+    private Handler handler = new Handler(Looper.getMainLooper()) {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case HANDLER_MESSAGE_UPDATE_NETWORK:
+                    urlUpdate();
+                    break;
+                default:
+                    super.handleMessage(msg);
+                    break;
+            }
+        }
+    };
+
+    private void urlUpdate() {
+        LinearLayout urlLayout = findViewById(R.id.urlLinerLayout);
+        urlLayout.removeAllViews();
+
+        List<NetworkHelper.IpInfo> ipInfoList = networkHelper.getIpInfo();
+        if (ipInfoList.isEmpty()) {
+            TextView interfaceTextView = new TextView(this);
+            interfaceTextView.setText(getResources().getString(R.string.no_active_connections));
+            urlLayout.addView(interfaceTextView);
+            return;
+        }
+
+        for (NetworkHelper.IpInfo ipInfo : ipInfoList) {
+            TextView interfaceTextView = new TextView(this);
+            String title = ipInfo.interfaceType + " (" + ipInfo.interfaceName + "):";
+            interfaceTextView.setText(title);
+            urlLayout.addView(interfaceTextView);
+
+            List<LinkAddress> addresses = ipInfo.addresses;
+            for (LinkAddress address : addresses) {
+                TextView urlTextView = new TextView(this);
+                String url;
+                if (address.getAddress() instanceof Inet6Address) {
+                    url ="http://[" + address.getAddress().getHostAddress() + "]:" +
+                            HTTP_SERVER_PORT;
+                } else {
+                    url = "http://" + address.getAddress().getHostAddress() + ":" +
+                            HTTP_SERVER_PORT;
+                }
+                urlTextView.setText(url);
+                urlLayout.addView(urlTextView);
+            }
+        }
+    }
 }
+
+
