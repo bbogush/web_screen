@@ -26,12 +26,27 @@ public class MouseAccessibilityService extends AccessibilityService {
     public void onInterrupt() {
     }
 
-    public static void click(int x, int y) {
+    public void click(int x, int y) {
         Log.d(TAG, "Click x=" + x + " y=" + y);
 
         GestureDescription desc = createClick(x, y, ViewConfiguration.getTapTimeout() + 50);
         if (!instance.dispatchGesture(desc, null, null))
             Log.w(TAG, "Click gesture was not dispatched");
+    }
+
+    public void backButtonClick() {
+        Log.d(TAG, "Back button pressed");
+        instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+    }
+
+    public void homeButtonClick() {
+        Log.d(TAG, "Home button pressed");
+        instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+    }
+
+    public void recentButtonClick() {
+        Log.d(TAG, "Recent button pressed");
+        instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
     }
 
     private static GestureDescription createClick(int x, int y, int duration ) {

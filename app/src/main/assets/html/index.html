@@ -26,6 +26,25 @@
             http.open('GET', url+'?' + params, true);
             http.send(null);
         }
+
+        function buttonHandler(button) {
+            var http = new XMLHttpRequest();
+            http.open('GET', window.location.href + '?' + "button=" + button, true);
+            http.send(null);
+        }
+
+        function backButtonHandler() {
+            buttonHandler("back");
+        }
+
+        function homeButtonHandler() {
+            buttonHandler("home");
+        }
+
+        function recentButtonHandler() {
+            buttonHandler("recent");
+        }
+
     </script>
 
     <style>
@@ -113,13 +132,13 @@
                 <tbody>
                     <tr>
                         <td>
-                            <button type="button">Back</button>
+                            <button type="button" onclick="backButtonHandler()">Back</button>
                         </td>
                         <td>
-                            <button type="button">Home</button>
+                            <button type="button" onclick="homeButtonHandler()">Home</button>
                         </td>
                         <td>
-                            <button type="button">Recent</button>
+                            <button type="button" onclick="recentButtonHandler()">Recent</button>
                         </td>
                     </tr>
                 </tbody>
