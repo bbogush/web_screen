@@ -1,14 +1,17 @@
 package com.bbogush.web_screen;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.preference.PreferenceManager;
 
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
@@ -20,6 +23,8 @@ import android.os.Looper;
 import android.os.Message;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.Switch;
@@ -41,8 +46,9 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int HANDLER_MESSAGE_UPDATE_NETWORK = 0;
 
-    private static final int HTTP_SERVER_PORT = 8080;
+    private static final int HTTP_SERVER_PORT_DEFAULT = 8080;
     private HttpServer httpServer = null;
+    private int httpServerPort = HTTP_SERVER_PORT_DEFAULT;
     private MediaProjectionManager mediaProjectionManager;
     ScreenCapture screenCapture;
     private MouseAccessibilityService mouseAccessibilityService = null;
@@ -58,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
         ToggleButton startButton = findViewById(R.id.startButton);
         startButton.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
@@ -82,11 +90,15 @@ public class MainActivity extends AppCompatActivity {
             setStartButton();
 
         createUrl();
+
+        setupSharedPreferences();
     }
 
     @Override
     public void onDestroy() {
         Log.d(TAG, "Activity destroy");
+
+        cleanSharedPreferences();
 
         if (networkHelper != null)
             networkHelper.close();
@@ -227,6 +239,7 @@ public class MainActivity extends AppCompatActivity {
                 if (mouseAccessibilityService != null) {
                     setRemoteControlSwitch();
                 }
+                screenCapture = appService.getScreenCapture();
             }
         }
 
@@ -277,10 +290,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startHttpServer() {
-        httpServer = new HttpServer(screenCapture, mouseAccessibilityService,
-                HTTP_SERVER_PORT, getApplicationContext());
+        httpServer = new HttpServer(screenCapture, mouseAccessibilityService, httpServerPort,
+                getApplicationContext());
         appService.setHttpServer(httpServer);
         appService.startHttpServer();
+    }
+
+    private void stopHttpServer() {
+        appService.stopHttpServer();
     }
 
     private void setStartButton() {
@@ -407,15 +424,78 @@ public class MainActivity extends AppCompatActivity {
                 String url;
                 if (address.getAddress() instanceof Inet6Address) {
                     url ="http://[" + address.getAddress().getHostAddress() + "]:" +
-                            HTTP_SERVER_PORT;
+                            httpServerPort;
                 } else {
-                    url = "http://" + address.getAddress().getHostAddress() + ":" +
-                            HTTP_SERVER_PORT;
+                    url = "http://" + address.getAddress().getHostAddress() + ":" + httpServerPort;
                 }
                 urlTextView.setText(url);
                 urlLayout.addView(urlTextView);
             }
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_settings) {
+            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+            startActivity(intent);
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    private class SharedPreferenceChangeListener implements
+            SharedPreferences.OnSharedPreferenceChangeListener {
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+            if (key.equals("port")) {
+                String port = sharedPreferences.getString("port",
+                        Integer.toString(HTTP_SERVER_PORT_DEFAULT));
+                try {
+                    httpServerPort = Integer.parseInt(port);
+                } catch (Exception e) {
+                    httpServerPort = HTTP_SERVER_PORT_DEFAULT;
+                }
+                if (AppService.isServiceRunning()) {
+                    stopHttpServer();
+                    startHttpServer();
+                }
+            }
+        }
+    }
+
+    private SharedPreferenceChangeListener sharedPreferenceChangeListener = null;
+
+    private void setupSharedPreferences() {
+        sharedPreferenceChangeListener = new SharedPreferenceChangeListener();
+        SharedPreferences sharedPreferences = PreferenceManager.
+                getDefaultSharedPreferences(this);
+        sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener);
+
+        String port = sharedPreferences.getString("port",
+                Integer.toString(HTTP_SERVER_PORT_DEFAULT));
+        try {
+            httpServerPort = Integer.parseInt(port);
+        } catch (Exception e) {
+            httpServerPort = HTTP_SERVER_PORT_DEFAULT;
+        }
+    }
+
+    private void cleanSharedPreferences() {
+        SharedPreferences sharedPreferences = PreferenceManager.
+                getDefaultSharedPreferences(this);
+        sharedPreferences.
+                unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener);
+        sharedPreferenceChangeListener = null;
     }
 }
 

@@ -5,4 +5,7 @@
     <string name="button_start">Start</string>
     <string name="button_stop">Stop</string>
     <string name="no_active_connections">No active connections</string>
+    <string name="action_settings">Settings</string>
+    <string name="general_header">General</string>
+    <string name="port_title">Port</string>
 </resources>
