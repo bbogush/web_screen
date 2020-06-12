@@ -4,14 +4,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.preference.PreferenceManager;
 
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
@@ -46,9 +44,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int HANDLER_MESSAGE_UPDATE_NETWORK = 0;
 
-    private static final int HTTP_SERVER_PORT_DEFAULT = 8080;
     private HttpServer httpServer = null;
-    private int httpServerPort = HTTP_SERVER_PORT_DEFAULT;
+    private int httpServerPort;
     private MediaProjectionManager mediaProjectionManager;
     ScreenCapture screenCapture;
     private MouseAccessibilityService mouseAccessibilityService = null;
@@ -57,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     AppServiceConnection serviceConnection = null;
 
     private NetworkHelper networkHelper = null;
+    private SettingsHelper settingsHelper = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,14 +89,14 @@ public class MainActivity extends AppCompatActivity {
 
         createUrl();
 
-        setupSharedPreferences();
+        initSettings();
     }
 
     @Override
     public void onDestroy() {
         Log.d(TAG, "Activity destroy");
 
-        cleanSharedPreferences();
+        uninitSettings();
 
         if (networkHelper != null)
             networkHelper.close();
@@ -453,49 +451,26 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private class SharedPreferenceChangeListener implements
-            SharedPreferences.OnSharedPreferenceChangeListener {
+    public void initSettings() {
+        settingsHelper = new SettingsHelper(getApplicationContext(),
+                new OnSettingsChangeListener());
+        httpServerPort = settingsHelper.getPort();
+    }
+
+    public void uninitSettings() {
+        settingsHelper.close();
+        settingsHelper = null;
+    }
+
+    private class OnSettingsChangeListener implements SettingsHelper.OnSettingsChangeListener {
         @Override
-        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-            if (key.equals("port")) {
-                String port = sharedPreferences.getString("port",
-                        Integer.toString(HTTP_SERVER_PORT_DEFAULT));
-                try {
-                    httpServerPort = Integer.parseInt(port);
-                } catch (Exception e) {
-                    httpServerPort = HTTP_SERVER_PORT_DEFAULT;
-                }
-                if (AppService.isServiceRunning()) {
-                    stopHttpServer();
-                    startHttpServer();
-                }
+        public void onPortChange(int port) {
+            httpServerPort = port;
+            if (AppService.isServiceRunning()) {
+                stopHttpServer();
+                startHttpServer();
             }
         }
-    }
-
-    private SharedPreferenceChangeListener sharedPreferenceChangeListener = null;
-
-    private void setupSharedPreferences() {
-        sharedPreferenceChangeListener = new SharedPreferenceChangeListener();
-        SharedPreferences sharedPreferences = PreferenceManager.
-                getDefaultSharedPreferences(this);
-        sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener);
-
-        String port = sharedPreferences.getString("port",
-                Integer.toString(HTTP_SERVER_PORT_DEFAULT));
-        try {
-            httpServerPort = Integer.parseInt(port);
-        } catch (Exception e) {
-            httpServerPort = HTTP_SERVER_PORT_DEFAULT;
-        }
-    }
-
-    private void cleanSharedPreferences() {
-        SharedPreferences sharedPreferences = PreferenceManager.
-                getDefaultSharedPreferences(this);
-        sharedPreferences.
-                unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener);
-        sharedPreferenceChangeListener = null;
     }
 }
 
