@@ -59,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        initSettings();
+
         ToggleButton startButton = findViewById(R.id.startButton);
         startButton.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
             @Override
@@ -77,13 +79,13 @@ public class MainActivity extends AppCompatActivity {
                 remoteControlEnable(isChecked);
             }
         });
+        if (settingsHelper.isRemoteControlEnabled())
+            remoteControl.setChecked(true);
 
         if (AppService.isServiceRunning())
             setStartButton();
 
         initPermission();
-
-        initSettings();
 
         createUrl();
     }
@@ -92,11 +94,10 @@ public class MainActivity extends AppCompatActivity {
     public void onDestroy() {
         Log.d(TAG, "Activity destroy");
 
-        uninitSettings();
-
         if (networkHelper != null)
             networkHelper.close();
         unbindService();
+        uninitSettings();
         super.onDestroy();
     }
 
@@ -277,6 +278,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void enableAccessibilityService(boolean isEnabled) {
+        settingsHelper.setRemoteControlEnabled(isEnabled);
+
         if (isEnabled) {
             if (httpServer != null && httpServer.getMouseAccessibilityService() != null)
                 return;

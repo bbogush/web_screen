@@ -9,6 +9,11 @@
             app:dialogMessage="@string/port_description"
             app:defaultValue="8080"
             app:useSimpleSummaryProvider="true" />
+        <Preference
+            app:key="remote_control"
+            app:isPreferenceVisible="false"
+            app:defaultValue="false"
+            />
     </PreferenceCategory>
 </PreferenceScreen>
 

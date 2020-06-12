@@ -14,7 +14,8 @@ public class SettingsHelper {
     private static final String TAG = SettingsHelper.class.getSimpleName();
 
     private static final int HTTP_SERVER_PORT_DEFAULT = 8080;
-    private static final String HTTP_SERVER_PORT_SETTINGS_NAME = "port";
+    private static final String SETTINGS_NAME_PORT = "port";
+    private static final String SETTINGS_NAME_REMOTE_CONTROL = "remote_control";
     private OnSettingsChangeListener onSettingsChangeListener;
 
     private SharedPreferenceChangeListener sharedPreferenceChangeListener;
@@ -37,7 +38,7 @@ public class SettingsHelper {
 
     public int getPort() {
         int port;
-        String portString = sharedPreferences.getString(HTTP_SERVER_PORT_SETTINGS_NAME,
+        String portString = sharedPreferences.getString(SETTINGS_NAME_PORT,
                 Integer.toString(HTTP_SERVER_PORT_DEFAULT));
         try {
             port = Integer.parseInt(portString);
@@ -49,13 +50,31 @@ public class SettingsHelper {
         return port;
     }
 
+    public void setRemoteControlEnabled(boolean enabled) {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean(SETTINGS_NAME_REMOTE_CONTROL, enabled);
+        editor.commit();
+    }
+
+    public boolean isRemoteControlEnabled() {
+        boolean isEnabled;
+        try {
+            isEnabled = sharedPreferences.getBoolean(SETTINGS_NAME_REMOTE_CONTROL, false);
+        } catch (Exception e) {
+            Log.d(TAG, "Failed to parse remote control settings");
+            isEnabled = false;
+        }
+
+        return isEnabled;
+    }
+
     private class SharedPreferenceChangeListener implements
             SharedPreferences.OnSharedPreferenceChangeListener {
         @Override
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
             if (onSettingsChangeListener == null)
                 return;
-            if (key.equals(HTTP_SERVER_PORT_SETTINGS_NAME)) {
+            if (key.equals(SETTINGS_NAME_PORT)) {
                 onSettingsChangeListener.onPortChange(getPort());
             }
         }
