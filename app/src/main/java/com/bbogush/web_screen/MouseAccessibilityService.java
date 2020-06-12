@@ -49,7 +49,7 @@ public class MouseAccessibilityService extends AccessibilityService {
         instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
     }
 
-    private static GestureDescription createClick(int x, int y, int duration ) {
+    private static GestureDescription createClick(int x, int y, int duration) {
         Path clickPath = new Path();
         clickPath.moveTo(x, y);
         GestureDescription.StrokeDescription clickStroke =
