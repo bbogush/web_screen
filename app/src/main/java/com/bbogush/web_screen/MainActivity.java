@@ -87,9 +87,9 @@ public class MainActivity extends AppCompatActivity {
         if (AppService.isServiceRunning())
             setStartButton();
 
-        createUrl();
-
         initSettings();
+
+        createUrl();
     }
 
     @Override
