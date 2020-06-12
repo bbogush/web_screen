@@ -2,15 +2,12 @@ package com.bbogush.web_screen;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.LinkAddress;
@@ -35,12 +32,8 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private static final int PERM_ACCESS_NETWORK_STATE = 0;
-    private static final int PERM_INTERNET = 1;
-    private static final int PERM_READ_EXTERNAL_STORAGE = 2;
-    private static final int PERM_FOREGROUND_SERVICE = 3;
-    private static final int PERM_ACTION_ACCESSIBILITY_SERVICE = 4;
-    private static final int PERM_MEDIA_PROJECTION_SERVICE = 5;
+    private static final int PERM_ACTION_ACCESSIBILITY_SERVICE = 100;
+    private static final int PERM_MEDIA_PROJECTION_SERVICE = 101;
 
     private static final int HANDLER_MESSAGE_UPDATE_NETWORK = 0;
 
@@ -55,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
 
     private NetworkHelper networkHelper = null;
     private SettingsHelper settingsHelper = null;
+    private PermissionHelper permissionHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,6 +81,8 @@ public class MainActivity extends AppCompatActivity {
         if (AppService.isServiceRunning())
             setStartButton();
 
+        initPermission();
+
         initSettings();
 
         createUrl();
@@ -111,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        checkInternetPermission();
+        permissionHelper.requestInternetPermission();
     }
 
     private void stop() {
@@ -122,78 +118,50 @@ public class MainActivity extends AppCompatActivity {
         stopService();
     }
 
-    private void checkInternetPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) ==
-                PackageManager.PERMISSION_GRANTED) {
-            checkExternalStoragePermission();
-            return;
-        }
-
-        ActivityCompat.requestPermissions(this, new String[]{ Manifest.permission.INTERNET },
-                PERM_INTERNET);
+    private void initPermission() {
+        permissionHelper = new PermissionHelper(this, new OnPermissionGrantedListener());
     }
 
-    private void checkExternalStoragePermission() {
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            checkForegroundServicePermission();
-            return;
+    private class OnPermissionGrantedListener implements
+            PermissionHelper.OnPermissionGrantedListener {
+        @Override
+        public void onAccessNetworkStatePermissionGranted(boolean isGranted) {
+            if (!isGranted)
+                return;
+            networkHelper = new NetworkHelper(getApplicationContext(),
+                    new OnNetworkChangeListener());
+            urlUpdate();
         }
 
-        ActivityCompat.requestPermissions(this,
-                new String[]{ Manifest.permission.READ_EXTERNAL_STORAGE },
-                PERM_READ_EXTERNAL_STORAGE);
-    }
-
-    private void checkForegroundServicePermission() {
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED) {
-            startService();
-            return;
+        @Override
+        public void onInternetPermissionGranted(boolean isGranted) {
+            if (isGranted)
+                permissionHelper.requestReadExternalStoragePermission();
+            else
+                resetStartButton();
         }
 
-        ActivityCompat.requestPermissions(this,
-                new String[]{ Manifest.permission.FOREGROUND_SERVICE },
-                PERM_FOREGROUND_SERVICE);
+        @Override
+        public void onReadExternalStoragePermissionGranted(boolean isGranted) {
+            if (isGranted)
+                permissionHelper.requestForegroundServicePermission();
+            else
+                resetStartButton();
+        }
+
+        @Override
+        public void onForegroundServicePermissionGranted(boolean isGranted) {
+            if (isGranted)
+                startService();
+            else
+                resetStartButton();
+        }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
-        switch (requestCode) {
-            case PERM_ACCESS_NETWORK_STATE:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    networkHelper = new NetworkHelper(getApplicationContext(),
-                            new OnNetworkChangeListener());
-                    urlUpdate();
-                }
-                break;
-            case PERM_INTERNET:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    checkExternalStoragePermission();
-                } else {
-                    resetStartButton();
-                }
-                break;
-            case PERM_READ_EXTERNAL_STORAGE:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    checkForegroundServicePermission();
-                } else {
-                    resetStartButton();
-                }
-                break;
-            case PERM_FOREGROUND_SERVICE:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    startService();
-                } else {
-                    resetStartButton();
-                }
-                break;
-        }
+        permissionHelper.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     private void startService() {
@@ -360,20 +328,7 @@ public class MainActivity extends AppCompatActivity {
         TextView interfaceTextView = new TextView(this);
         interfaceTextView.setText(getResources().getString(R.string.no_active_connections));
         urlLayout.addView(interfaceTextView);
-        checkNetworkStatePermission();
-    }
-
-    private void checkNetworkStatePermission() {
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED) {
-            networkHelper = new NetworkHelper(getApplicationContext(),
-                    new OnNetworkChangeListener());
-            urlUpdate();
-            return;
-        }
-
-        ActivityCompat.requestPermissions(this, new String[]{
-                Manifest.permission.ACCESS_NETWORK_STATE }, PERM_ACCESS_NETWORK_STATE);
+        permissionHelper.requestAccessNetworkStatePermission();
     }
 
     private class OnNetworkChangeListener implements NetworkHelper.OnNetworkChangeListener {
