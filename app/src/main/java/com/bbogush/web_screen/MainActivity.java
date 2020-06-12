@@ -165,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     networkHelper = new NetworkHelper(getApplicationContext(),
-                            onNetworkChangeListener);
+                            new OnNetworkChangeListener());
                     urlUpdate();
                 }
                 break;
@@ -366,7 +366,8 @@ public class MainActivity extends AppCompatActivity {
     private void checkNetworkStatePermission() {
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED) {
-            networkHelper = new NetworkHelper(getApplicationContext(), onNetworkChangeListener);
+            networkHelper = new NetworkHelper(getApplicationContext(),
+                    new OnNetworkChangeListener());
             urlUpdate();
             return;
         }
@@ -375,14 +376,13 @@ public class MainActivity extends AppCompatActivity {
                 Manifest.permission.ACCESS_NETWORK_STATE }, PERM_ACCESS_NETWORK_STATE);
     }
 
-    private NetworkHelper.OnNetworkChangeListener onNetworkChangeListener =
-            new NetworkHelper.OnNetworkChangeListener() {
-                @Override
-                public void onChange() {
-                    // Interfaces need some time to update
-                    handler.sendEmptyMessageDelayed(HANDLER_MESSAGE_UPDATE_NETWORK, 1000);
-                }
-            };
+    private class OnNetworkChangeListener implements NetworkHelper.OnNetworkChangeListener {
+        @Override
+        public void onChange() {
+            // Interfaces need some time to update
+            handler.sendEmptyMessageDelayed(HANDLER_MESSAGE_UPDATE_NETWORK, 1000);
+        }
+    }
 
     private Handler handler = new Handler(Looper.getMainLooper()) {
         @Override
