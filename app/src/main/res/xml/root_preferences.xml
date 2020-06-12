@@ -5,6 +5,8 @@
         <EditTextPreference
             app:key="port"
             app:title="@string/port_title"
+            app:dialogTitle="@string/port_title"
+            app:dialogMessage="@string/port_description"
             app:defaultValue="8080"
             app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
