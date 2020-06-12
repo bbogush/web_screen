@@ -466,6 +466,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPortChange(int port) {
             httpServerPort = port;
+            urlUpdate();
             if (AppService.isServiceRunning()) {
                 stopHttpServer();
                 startHttpServer();
