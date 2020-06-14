@@ -13,8 +13,12 @@ import fi.iki.elonen.NanoHTTPD;
 
 public class HttpServer extends NanoHTTPD {
     private static final String INDEX_HTML = "html/index.html";
-    private static final String CLICK_X_PARAM = "x";
-    private static final String CLICK_Y_PARAM = "y";
+    private static final String MOUSE_PARAM = "mouse";
+    private static final String MOUSE_PARAM_VALUE_DOWN = "down";
+    private static final String MOUSE_PARAM_VALUE_MOVE = "move";
+    private static final String MOUSE_PARAM_VALUE_UP = "up";
+    private static final String MOUSE_PARAM_X = "x";
+    private static final String MOUSE_PARAM_Y = "y";
     private static final String BUTTON_PARAM = "button";
     private static final String BUTTON_PARAM_VALUE_BACK = "back";
     private static final String BUTTON_PARAM_VALUE_HOME = "home";
@@ -76,22 +80,29 @@ public class HttpServer extends NanoHTTPD {
         if (mouseAccessibilityService == null)
             return;
 
-        handleClickParameters(parameters);
+        handleMouseParameters(parameters);
         handleButtonParameters(parameters);
     }
 
-    private void handleClickParameters(Map<String, List<String>> parameters) {
-        List<String> listX = parameters.get(CLICK_X_PARAM);
+    private void handleMouseParameters(Map<String, List<String>> parameters) {
+        List<String> listAction = parameters.get(MOUSE_PARAM);
+        if (listAction == null || listAction.isEmpty())
+            return;
+
+        List<String> listX = parameters.get(MOUSE_PARAM_X);
         if (listX == null || listX.isEmpty())
             return;
 
-        List<String> listY = parameters.get(CLICK_Y_PARAM);
+        List<String> listY = parameters.get(MOUSE_PARAM_Y);
         if (listY == null || listY.isEmpty())
             return;
 
+        String actionString = listAction.get(0);
         String xString = listX.get(0);
         String yString = listY.get(0);
 
+        if (actionString == null || actionString.isEmpty())
+            return;
         if (xString == null || xString.isEmpty())
             return;
         if (yString == null || yString.isEmpty())
@@ -105,7 +116,12 @@ public class HttpServer extends NanoHTTPD {
             return;
         }
 
-        mouseAccessibilityService.click(x, y);
+        if (actionString.contentEquals(MOUSE_PARAM_VALUE_DOWN))
+            mouseAccessibilityService.mouseDown(x, y);
+        else if (actionString.contentEquals(MOUSE_PARAM_VALUE_MOVE))
+            mouseAccessibilityService.mouseMove(x, y);
+        else if (actionString.contentEquals(MOUSE_PARAM_VALUE_UP))
+            mouseAccessibilityService.mouseUp(x, y);
     }
 
     private void handleButtonParameters(Map<String, List<String>> parameters) {

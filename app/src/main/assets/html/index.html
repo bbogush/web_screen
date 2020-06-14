@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html>
     <script type='text/javascript'>
+        var mouseDown = false;
+
         window.onload = init;
 
         function init() {
-            document.getElementById('screen').addEventListener('click', sendClick);
+            document.getElementById('screen').ondragstart = function() { return false; };
+            document.getElementById('screen').addEventListener('mousedown', mouseDownHandler);
+            document.getElementById('screen').addEventListener('mousemove', mouseMoveHandler);
+            document.getElementById('screen').addEventListener('mouseup', mouseUpHandler);
         }
 
         function getPosition(e) {
@@ -18,13 +23,28 @@
             return {x, y};
         }
 
-        function sendClick(e) {
+        function mouseHandler(e, action) {
             var position = getPosition(e);
-            var url = window.location.href;
-            var params = 'x=' + position.x + '&y=' + position.y;
+            var params = 'mouse=' + action + '&x=' + position.x + '&y=' + position.y;
             var http = new XMLHttpRequest();
-            http.open('GET', url+'?' + params, true);
+            http.open('GET', window.location.href + '?' + params, true);
             http.send(null);
+        }
+
+        function mouseDownHandler(e) {
+            mouseDown = true;
+            mouseHandler(e, 'down');
+        }
+
+        function mouseMoveHandler(e) {
+            if (!mouseDown)
+                return;
+            mouseHandler(e, 'move');
+        }
+
+        function mouseUpHandler(e) {
+            mouseDown = false;
+            mouseHandler(e, 'up');
         }
 
         function buttonHandler(button) {
