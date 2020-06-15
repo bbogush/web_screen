@@ -6,7 +6,7 @@ import android.graphics.Path;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -34,7 +34,7 @@ public class MouseAccessibilityService extends AccessibilityService {
     private boolean isMouseDown = false;
     private GestureDescription.StrokeDescription currentStroke;
     private int prevX, prevY;
-    List<Gesture> gestureList = new ArrayList<>();
+    List<Gesture> gestureList = new LinkedList<>();
 
     @Override
     public void onCreate() {
