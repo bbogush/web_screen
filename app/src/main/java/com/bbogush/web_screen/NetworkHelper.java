@@ -7,7 +7,7 @@ import android.net.LinkProperties;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.util.Log;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class NetworkHelper {
@@ -80,7 +80,7 @@ public class NetworkHelper {
     }
 
     public List<IpInfo> getIpInfo() {
-        List<IpInfo> ipInfoList = new ArrayList<>();
+        List<IpInfo> ipInfoList = new LinkedList<>();
 
         Network[] networks = connectivityManager.getAllNetworks();
         for (Network network : networks) {
@@ -102,7 +102,7 @@ public class NetworkHelper {
             IpInfo ipInfo = new IpInfo();
             ipInfo.interfaceName = interfaceName;
             ipInfo.interfaceType = getInterfaceType(networkCapabilities);
-            ipInfo.addresses = new ArrayList<>();
+            ipInfo.addresses = new LinkedList<>();
             List<LinkAddress> addresses = linkProperties.getLinkAddresses();
             for (LinkAddress address : addresses) {
                 if (address.getAddress().isLinkLocalAddress())
