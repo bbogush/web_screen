@@ -1,191 +1,191 @@
 <!DOCTYPE html>
 <html>
-    <script type='text/javascript'>
-        var mouseDown = false;
+<script type='text/javascript'>
+    var mouseDown = false;
 
-        window.onload = init;
+    window.onload = init;
 
-        function init() {
-            document.getElementById('screen').ondragstart = function() { return false; };
-            document.getElementById('screen').addEventListener('mousedown', mouseDownHandler);
-            document.getElementById('screen').addEventListener('mousemove', mouseMoveHandler);
-            document.getElementById('screen').addEventListener('mouseup', mouseUpHandler);
-        }
+    function init() {
+        document.getElementById('screen').ondragstart = function() { return false; };
+        document.getElementById('screen').addEventListener('mousedown', mouseDownHandler);
+        document.getElementById('screen').addEventListener('mousemove', mouseMoveHandler);
+        document.getElementById('screen').addEventListener('mouseup', mouseUpHandler);
+    }
 
-        function isMouseLeftButtonPressed(e) {
-            var MOUSE_LEFT_BUTTON_NUMBER = 1;
+    function isMouseLeftButtonPressed(e) {
+        var MOUSE_LEFT_BUTTON_NUMBER = 1;
 
-            return e.buttons === undefined ? e.which === MOUSE_LEFT_BUTTON_NUMBER :
-                e.buttons === MOUSE_LEFT_BUTTON_NUMBER;
-        }
+        return e.buttons === undefined ? e.which === MOUSE_LEFT_BUTTON_NUMBER :
+            e.buttons === MOUSE_LEFT_BUTTON_NUMBER;
+    }
 
-        function getPosition(e) {
-            var rect = e.target.getBoundingClientRect();
-            var x = e.clientX - rect.left;
-            var y = e.clientY - rect.top;
+    function getPosition(e) {
+        var rect = e.target.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var y = e.clientY - rect.top;
 
-            x = Math.round(x * e.target.naturalWidth * 1.0 / e.target.width);
-            y = Math.round(y * e.target.naturalHeight * 1.0 / e.target.height);
+        x = Math.round(x * e.target.naturalWidth * 1.0 / e.target.width);
+        y = Math.round(y * e.target.naturalHeight * 1.0 / e.target.height);
 
-            return {x, y};
-        }
+        return {x, y};
+    }
 
-        function mouseHandler(e, action) {
-            var position = getPosition(e);
-            var params = 'mouse=' + action + '&x=' + position.x + '&y=' + position.y;
-            var http = new XMLHttpRequest();
-            http.open('GET', window.location.href + '?' + params, true);
-            http.send(null);
-        }
+    function mouseHandler(e, action) {
+        var position = getPosition(e);
+        var params = 'mouse=' + action + '&x=' + position.x + '&y=' + position.y;
+        var http = new XMLHttpRequest();
+        http.open('GET', window.location.href + '?' + params, true);
+        http.send(null);
+    }
 
-        function mouseDownHandler(e) {
-            if (!isMouseLeftButtonPressed(e))
-                return;
-            mouseDown = true;
-            mouseHandler(e, 'down');
-        }
+    function mouseDownHandler(e) {
+        if (!isMouseLeftButtonPressed(e))
+            return;
+        mouseDown = true;
+        mouseHandler(e, 'down');
+    }
 
-        function mouseMoveHandler(e) {
-            if (!mouseDown)
-                return;
-            if (!isMouseLeftButtonPressed(e)) {
-                mouseDown = false;
-                mouseHandler(e, 'up');
-                return;
-            }
-            mouseHandler(e, 'move');
-        }
-
-        function mouseUpHandler(e) {
-            if (!mouseDown)
-                return;
-            if (isMouseLeftButtonPressed(e))
-                return;
+    function mouseMoveHandler(e) {
+        if (!mouseDown)
+            return;
+        if (!isMouseLeftButtonPressed(e)) {
             mouseDown = false;
             mouseHandler(e, 'up');
+            return;
         }
+        mouseHandler(e, 'move');
+    }
 
-        function buttonHandler(button) {
-            var http = new XMLHttpRequest();
-            http.open('GET', window.location.href + '?' + "button=" + button, true);
-            http.send(null);
-        }
+    function mouseUpHandler(e) {
+        if (!mouseDown)
+            return;
+        if (isMouseLeftButtonPressed(e))
+            return;
+        mouseDown = false;
+        mouseHandler(e, 'up');
+    }
 
-        function backButtonHandler() {
-            buttonHandler("back");
-        }
+    function buttonHandler(button) {
+        var http = new XMLHttpRequest();
+        http.open('GET', window.location.href + '?' + "button=" + button, true);
+        http.send(null);
+    }
 
-        function homeButtonHandler() {
-            buttonHandler("home");
-        }
+    function backButtonHandler() {
+        buttonHandler("back");
+    }
 
-        function recentButtonHandler() {
-            buttonHandler("recent");
-        }
+    function homeButtonHandler() {
+        buttonHandler("home");
+    }
 
-    </script>
+    function recentButtonHandler() {
+        buttonHandler("recent");
+    }
 
-    <style>
-        body, html {
-            width: 100%;
-            height: 100%;
-            margin: 0px;
-            border: 0px;
-            overflow: hidden;
-            font-family: sans-serif;
-            display: block;
-            text-align: center;
-        }
+</script>
 
-        body {
-            background: #112233;
-        }
+<style>
+    body, html {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+        border: 0px;
+        overflow: hidden;
+        font-family: sans-serif;
+        display: block;
+        text-align: center;
+    }
 
-        img {
-             max-width: 100%;
-             max-height: 95%;
-             display: block;
-             padding: 0px;
-             border: 0px;
-             margin-left: auto;
-             margin-right: auto;
-        }
+    body {
+        background: #112233;
+    }
 
-        .image_div {
-            height: 100%;
-            display: block;
-            text-align: center;
-            padding: 0px;
-            margin: 0px;
-            border: 0px;
-        }
+    img {
+         max-width: 100%;
+         max-height: 95%;
+         display: block;
+         padding: 0px;
+         border: 0px;
+         margin-left: auto;
+         margin-right: auto;
+    }
 
-        table {
-            display: inline-block;
-            table-layout: fixed;
-            width: 100%;
-            height: 5%;
-            overflow: hidden;
-            white-space: nowrap;
-            overflow-wrap: break-word;
-            padding: 0px;
-            margin: 0px;
-            border: 0px;
-        }
+    .image_div {
+        height: 100%;
+        display: block;
+        text-align: center;
+        padding: 0px;
+        margin: 0px;
+        border: 0px;
+    }
 
-        tbody {
-            display: inline-block;
-            width: 100%;
-            height: 100%;
-        }
+    table {
+        display: inline-block;
+        table-layout: fixed;
+        width: 100%;
+        height: 5%;
+        overflow: hidden;
+        white-space: nowrap;
+        overflow-wrap: break-word;
+        padding: 0px;
+        margin: 0px;
+        border: 0px;
+    }
 
-        tr {
-            display: inline-block;
-            width: 100%;
-            height: 100%;
-            background-color: #000000;
-        }
+    tbody {
+        display: inline-block;
+        width: 100%;
+        height: 100%;
+    }
 
-        td {
-            display: inline-block;
-            width: 33%;
-            height: 100%;
-            overflow: hidden;
-            white-space: nowrap;
-            overflow-wrap: break-word;
-        }
+    tr {
+        display: inline-block;
+        width: 100%;
+        height: 100%;
+        background-color: #000000;
+    }
 
-        button {
-            display: block;
-            width: 100%;
-            height: 100%;
-            border: 0px;
-            margin: 0px;
-            padding: 0px;
-            color: #DDDDDD;
-            background-color: #000000;
-            outline: none;
-        }
-    </style>
+    td {
+        display: inline-block;
+        width: 33%;
+        height: 100%;
+        overflow: hidden;
+        white-space: nowrap;
+        overflow-wrap: break-word;
+    }
 
-    <body>
-        <div class="image_div">
-            <img id="screen" src="/mjpeg">
-            <table>
-                <tbody>
-                    <tr>
-                        <td>
-                            <button type="button" onclick="backButtonHandler()">Back</button>
-                        </td>
-                        <td>
-                            <button type="button" onclick="homeButtonHandler()">Home</button>
-                        </td>
-                        <td>
-                            <button type="button" onclick="recentButtonHandler()">Recent</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-         </div>
-    </body>
+    button {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0px;
+        margin: 0px;
+        padding: 0px;
+        color: #DDDDDD;
+        background-color: #000000;
+        outline: none;
+    }
+</style>
+
+<body>
+    <div class="image_div">
+        <img id="screen" src="/mjpeg">
+        <table>
+            <tbody>
+                <tr>
+                    <td>
+                        <button type="button" onclick="backButtonHandler()">Back</button>
+                    </td>
+                    <td>
+                        <button type="button" onclick="homeButtonHandler()">Home</button>
+                    </td>
+                    <td>
+                        <button type="button" onclick="recentButtonHandler()">Recent</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+     </div>
+</body>
 </html>
