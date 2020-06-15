@@ -12,6 +12,13 @@
             document.getElementById('screen').addEventListener('mouseup', mouseUpHandler);
         }
 
+        function isMouseLeftButtonPressed(e) {
+            var MOUSE_LEFT_BUTTON_NUMBER = 1;
+
+            return e.buttons === undefined ? e.which === MOUSE_LEFT_BUTTON_NUMBER :
+                e.buttons === MOUSE_LEFT_BUTTON_NUMBER;
+        }
+
         function getPosition(e) {
             var rect = e.target.getBoundingClientRect();
             var x = e.clientX - rect.left;
@@ -32,6 +39,8 @@
         }
 
         function mouseDownHandler(e) {
+            if (!isMouseLeftButtonPressed(e))
+                return;
             mouseDown = true;
             mouseHandler(e, 'down');
         }
@@ -39,10 +48,19 @@
         function mouseMoveHandler(e) {
             if (!mouseDown)
                 return;
+            if (!isMouseLeftButtonPressed(e)) {
+                mouseDown = false;
+                mouseHandler(e, 'up');
+                return;
+            }
             mouseHandler(e, 'move');
         }
 
         function mouseUpHandler(e) {
+            if (!mouseDown)
+                return;
+            if (isMouseLeftButtonPressed(e))
+                return;
             mouseDown = false;
             mouseHandler(e, 'up');
         }
