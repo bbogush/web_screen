@@ -17,6 +17,8 @@ public class HttpServer extends NanoHTTPD {
     private static final String MOUSE_PARAM_VALUE_DOWN = "down";
     private static final String MOUSE_PARAM_VALUE_MOVE = "move";
     private static final String MOUSE_PARAM_VALUE_UP = "up";
+    private static final String MOUSE_PARAM_VALUE_ZOOM_IN = "zoomIn";
+    private static final String MOUSE_PARAM_VALUE_ZOOM_OUT = "zoomOut";
     private static final String MOUSE_PARAM_X = "x";
     private static final String MOUSE_PARAM_Y = "y";
     private static final String BUTTON_PARAM = "button";
@@ -122,6 +124,10 @@ public class HttpServer extends NanoHTTPD {
             mouseAccessibilityService.mouseMove(x, y);
         else if (actionString.contentEquals(MOUSE_PARAM_VALUE_UP))
             mouseAccessibilityService.mouseUp(x, y);
+        else if (actionString.contentEquals(MOUSE_PARAM_VALUE_ZOOM_IN))
+            mouseAccessibilityService.mouseWheelZoomIn(x, y);
+        else if (actionString.contentEquals(MOUSE_PARAM_VALUE_ZOOM_OUT))
+            mouseAccessibilityService.mouseWheelZoomOut(x, y);
     }
 
     private void handleButtonParameters(Map<String, List<String>> parameters) {

@@ -10,6 +10,7 @@
         document.getElementById('screen').addEventListener('mousedown', mouseDownHandler);
         document.getElementById('screen').addEventListener('mousemove', mouseMoveHandler);
         document.getElementById('screen').addEventListener('mouseup', mouseUpHandler);
+        document.getElementById('screen').addEventListener('wheel', mouseWheelHandler);
     }
 
     function isMouseLeftButtonPressed(e) {
@@ -63,6 +64,16 @@
             return;
         mouseDown = false;
         mouseHandler(e, 'up');
+    }
+
+    function mouseWheelHandler(e) {
+        if (!e.ctrlKey)
+            return;
+        if (e.deltaY > 0)
+            mouseHandler(e, 'zoomOut');
+        else if (e.deltaY < 0)
+            mouseHandler(e, 'zoomIn');
+        e.preventDefault();
     }
 
     function buttonHandler(button) {

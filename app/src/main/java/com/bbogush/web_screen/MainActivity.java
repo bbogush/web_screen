@@ -284,6 +284,7 @@ public class MainActivity extends AppCompatActivity {
             if (httpServer != null && httpServer.getMouseAccessibilityService() != null)
                 return;
             mouseAccessibilityService = new MouseAccessibilityService();
+            mouseAccessibilityService.setContext(getApplicationContext());
             if (httpServer != null)
                 httpServer.setMouseAccessibilityService(mouseAccessibilityService);
         } else {
