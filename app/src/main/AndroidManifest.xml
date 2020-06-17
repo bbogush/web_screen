@@ -19,6 +19,9 @@
         <meta-data
             android:name="com.google.android.actions"
             android:resource="@menu/menu_main" />
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-6312357173588580~1347138127" />
 
         <activity
             android:name=".MainActivity"

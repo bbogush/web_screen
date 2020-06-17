@@ -47,4 +47,10 @@
         android:textOff="@string/button_start"
         android:textOn="@string/button_stop" />
 
+    <RelativeLayout
+        android:id="@+id/adRelativeLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="bottom"></RelativeLayout>
+
 </LinearLayout>
