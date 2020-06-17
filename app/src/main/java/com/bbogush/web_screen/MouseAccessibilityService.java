@@ -233,4 +233,9 @@ public class MouseAccessibilityService extends AccessibilityService {
         Log.d(TAG, "Recent button pressed");
         instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
     }
+
+    public void powerButtonClick() {
+        Log.d(TAG, "Power button pressed");
+        instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
+    }
 }

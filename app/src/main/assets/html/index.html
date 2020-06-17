@@ -94,6 +94,10 @@
         buttonHandler("recent");
     }
 
+    function powerButtonHandler() {
+        buttonHandler("power");
+    }
+
 </script>
 
 <style>
@@ -159,7 +163,7 @@
 
     td {
         display: inline-block;
-        width: 33%;
+        width: 25%;
         height: 100%;
         overflow: hidden;
         white-space: nowrap;
@@ -193,6 +197,9 @@
                     </td>
                     <td>
                         <button type="button" onclick="recentButtonHandler()">Recent</button>
+                    </td>
+                    <td>
+                        <button type="button" onclick="powerButtonHandler()">Power</button>
                     </td>
                 </tr>
             </tbody>
