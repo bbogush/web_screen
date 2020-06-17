@@ -26,6 +26,7 @@ public class HttpServer extends NanoHTTPD {
     private static final String BUTTON_PARAM_VALUE_HOME = "home";
     private static final String BUTTON_PARAM_VALUE_RECENT = "recent";
     private static final String BUTTON_PARAM_VALUE_POWER = "power";
+    private static final String BUTTON_PARAM_VALUE_LOCK = "lock";
 
     private MouseAccessibilityService mouseAccessibilityService;
     private ScreenCapture capture;
@@ -148,6 +149,8 @@ public class HttpServer extends NanoHTTPD {
             mouseAccessibilityService.recentButtonClick();
         else if (button.contentEquals(BUTTON_PARAM_VALUE_POWER))
             mouseAccessibilityService.powerButtonClick();
+        else if (button.contentEquals(BUTTON_PARAM_VALUE_LOCK))
+            mouseAccessibilityService.lockButtonClick();
     }
 
     private String readFile(String fileName) {

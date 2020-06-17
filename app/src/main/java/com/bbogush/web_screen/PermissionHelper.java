@@ -13,13 +13,15 @@ public class PermissionHelper {
         void onAccessNetworkStatePermissionGranted(boolean isGranted);
         void onInternetPermissionGranted(boolean isGranted);
         void onReadExternalStoragePermissionGranted(boolean isGranted);
+        void onWakeLockPermissionGranted(boolean isGranted);
         void onForegroundServicePermissionGranted(boolean isGranted);
     }
 
     private static final int PERM_ACCESS_NETWORK_STATE = 0;
     private static final int PERM_INTERNET = 1;
     private static final int PERM_READ_EXTERNAL_STORAGE = 2;
-    private static final int PERM_FOREGROUND_SERVICE = 3;
+    private static final int PERM_WAKE_LOCK = 3;
+    private static final int PERM_FOREGROUND_SERVICE = 4;
 
     private Activity activity;
     private OnPermissionGrantedListener onPermissionGrantedListener;
@@ -66,6 +68,18 @@ public class PermissionHelper {
                 PERM_READ_EXTERNAL_STORAGE);
     }
 
+    public void requestWakeLockPermission() {
+        if (ContextCompat.checkSelfPermission(activity.getApplicationContext(),
+                Manifest.permission.WAKE_LOCK) == PackageManager.PERMISSION_GRANTED) {
+            onPermissionGrantedListener.onWakeLockPermissionGranted(true);
+            return;
+        }
+
+        ActivityCompat.requestPermissions(activity,
+                new String[]{ Manifest.permission.WAKE_LOCK },
+                PERM_WAKE_LOCK);
+    }
+
     public void requestForegroundServicePermission() {
         if (ContextCompat.checkSelfPermission(activity.getApplicationContext(),
                 Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED) {
@@ -103,6 +117,14 @@ public class PermissionHelper {
                     onPermissionGrantedListener.onReadExternalStoragePermissionGranted(true);
                 } else {
                     onPermissionGrantedListener.onReadExternalStoragePermissionGranted(false);
+                }
+                break;
+            case PERM_WAKE_LOCK:
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    onPermissionGrantedListener.onWakeLockPermissionGranted(true);
+                } else {
+                    onPermissionGrantedListener.onWakeLockPermissionGranted(false);
                 }
                 break;
             case PERM_FOREGROUND_SERVICE:

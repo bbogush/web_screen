@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.content.Context;
 import android.graphics.Path;
+import android.os.PowerManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -237,5 +238,32 @@ public class MouseAccessibilityService extends AccessibilityService {
     public void powerButtonClick() {
         Log.d(TAG, "Power button pressed");
         instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
+    }
+
+    public void lockButtonClick() {
+        Log.d(TAG, "Lock button pressed");
+        if (!isScreenOff())
+            instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN);
+        else
+            wakeScreenIfNecessary();
+    }
+
+    private boolean isScreenOff() {
+        PowerManager pm = (PowerManager) instance.getSystemService(Context.POWER_SERVICE);
+        return !pm.isInteractive();
+    }
+
+    @SuppressWarnings("deprecation")
+    private void wakeScreenIfNecessary() {
+        PowerManager pm = (PowerManager) instance.getSystemService(Context.POWER_SERVICE);
+        if (pm.isInteractive()) {
+            return;
+        }
+
+        PowerManager.WakeLock screenLock =
+                pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK |
+                                PowerManager.ACQUIRE_CAUSES_WAKEUP, TAG);
+        screenLock.acquire();
+        screenLock.release();
     }
 }

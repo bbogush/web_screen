@@ -98,6 +98,10 @@
         buttonHandler("power");
     }
 
+    function lockButtonHandler() {
+        buttonHandler("lock");
+    }
+
 </script>
 
 <style>
@@ -163,7 +167,7 @@
 
     td {
         display: inline-block;
-        width: 25%;
+        width: 20%;
         height: 100%;
         overflow: hidden;
         white-space: nowrap;
@@ -200,6 +204,9 @@
                     </td>
                     <td>
                         <button type="button" onclick="powerButtonHandler()">Power</button>
+                    </td>
+                    <td>
+                        <button type="button" onclick="lockButtonHandler()">Lock screen</button>
                     </td>
                 </tr>
             </tbody>
