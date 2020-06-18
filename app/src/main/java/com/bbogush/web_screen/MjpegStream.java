@@ -24,7 +24,7 @@ public class MjpegStream extends InputStream {
     private boolean isFirstBoundary = true;
     private int pos = 0;
 
-    private static final long STREAM_DELAY_MS = 40;
+    private static final long STREAM_DELAY_MS = 33;
     private long timestamp = 0;
 
     public MjpegStream(ScreenCapture screenCapture) {
@@ -44,7 +44,7 @@ public class MjpegStream extends InputStream {
     }
 
     private boolean rateLimit() {
-        long timeElapsedMs = (System.nanoTime() - timestamp) / 1000;
+        long timeElapsedMs = (System.nanoTime() - timestamp) / 1000000;
         if (timeElapsedMs < STREAM_DELAY_MS) {
             try {
                 Thread.sleep(STREAM_DELAY_MS - timeElapsedMs);
