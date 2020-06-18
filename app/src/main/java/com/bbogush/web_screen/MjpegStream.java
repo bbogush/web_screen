@@ -78,12 +78,14 @@ public class MjpegStream extends InputStream {
                     boundaryLine.toCharArray().length);
             isFirstBoundary = false;
         }
-        dataStream.write(contentType.getBytes(StandardCharsets.US_ASCII), 0, contentType.toCharArray().length);
+        dataStream.write(contentType.getBytes(StandardCharsets.US_ASCII), 0,
+                contentType.toCharArray().length);
         String contentLengthString = String.format(contentLength, imageStream.size());
         dataStream.write(contentLengthString.getBytes(StandardCharsets.US_ASCII), 0,
                 contentLengthString.toCharArray().length);
         dataStream.write(imageStream.toByteArray(), 0, imageStream.size());
-        dataStream.write(boundaryLine.getBytes(StandardCharsets.US_ASCII), 0, boundaryLine.toCharArray().length);
+        dataStream.write(boundaryLine.getBytes(StandardCharsets.US_ASCII), 0,
+                boundaryLine.toCharArray().length);
     }
 
     @Override
