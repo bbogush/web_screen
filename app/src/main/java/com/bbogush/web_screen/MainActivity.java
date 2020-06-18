@@ -50,11 +50,11 @@ public class MainActivity extends AppCompatActivity {
     private HttpServer httpServer = null;
     private int httpServerPort;
     private MediaProjectionManager mediaProjectionManager;
-    ScreenCapture screenCapture;
+    private ScreenCapture screenCapture;
     private MouseAccessibilityService mouseAccessibilityService = null;
 
-    AppService appService = null;
-    AppServiceConnection serviceConnection = null;
+    private AppService appService = null;
+    private AppServiceConnection serviceConnection = null;
 
     private NetworkHelper networkHelper = null;
     private SettingsHelper settingsHelper = null;
