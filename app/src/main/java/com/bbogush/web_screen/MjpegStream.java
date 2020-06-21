@@ -20,17 +20,40 @@ public class MjpegStream extends InputStream {
     private ScreenCapture screenCapture;
     private ByteArrayOutputStream imageStream = new ByteArrayOutputStream();
     private ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
+    private byte [] data;
+    private int dataSize;
 
     private boolean isFirstBoundary = true;
     private int pos = 0;
 
-    private static final long STREAM_DELAY_MS = 33;
-    private long timestamp = 0;
+    private Object syncToken = new Object();
+    private OnBitmapAvailableListener bitmapListener = new OnBitmapAvailableListener();
 
     public MjpegStream(ScreenCapture screenCapture) {
         super();
 
         this.screenCapture = screenCapture;
+        screenCapture.registerOnBitmapAvailableListener(bitmapListener);
+    }
+
+    @Override
+    public void close() {
+        Log.d(TAG, "Stream is closed");
+        screenCapture.unregisterOnBitmapAvailableListener(bitmapListener);
+        isFirstBoundary = true;
+        pos = 0;
+    }
+
+    private class OnBitmapAvailableListener implements ScreenCapture.OnBitmapAvailableListener {
+        @Override
+        public void onBitmapAvailable(Bitmap bitmap) {
+            imageStream.reset();
+            synchronized(syncToken) {
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, imageStream);
+
+                syncToken.notify();
+            }
+        }
     }
 
     @Override
@@ -41,34 +64,6 @@ public class MjpegStream extends InputStream {
     @Override
     public int read() {
         throw new UnsupportedOperationException("read() method is not implemented");
-    }
-
-    private boolean rateLimit() {
-        long timeElapsedMs = (System.nanoTime() - timestamp) / 1000000;
-        if (timeElapsedMs < STREAM_DELAY_MS) {
-            try {
-                Thread.sleep(STREAM_DELAY_MS - timeElapsedMs);
-            } catch (InterruptedException e) {
-                Log.d(TAG, "Thread interrupted");
-                Thread.interrupted();
-                return false;
-            }
-        }
-        timestamp = System.nanoTime();
-
-        return true;
-    }
-
-    private void updateImage() {
-        synchronized (screenCapture.bitmapDataLock) {
-            Bitmap bitmap = screenCapture.getBitmap();
-            if (bitmap == null)
-                bitmap = Bitmap.createBitmap(20, 20, Bitmap.Config.ARGB_8888);
-
-            imageStream.reset();
-
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, imageStream);
-        }
     }
 
     private void createContent() {
@@ -86,6 +81,8 @@ public class MjpegStream extends InputStream {
         dataStream.write(imageStream.toByteArray(), 0, imageStream.size());
         dataStream.write(boundaryLine.getBytes(StandardCharsets.US_ASCII), 0,
                 boundaryLine.toCharArray().length);
+        data = dataStream.toByteArray();
+        dataSize = dataStream.size();
     }
 
     @Override
@@ -93,28 +90,24 @@ public class MjpegStream extends InputStream {
         int copy = 0;
 
         if (pos == 0) {
-            if (!rateLimit()) {
-                Log.d(TAG, "Close stream");
-                return -1;
-            }
+            synchronized(syncToken) {
+                try {
+                    syncToken.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    return 0;
+                }
 
-            updateImage();
-            createContent();
+                createContent();
+            }
         }
 
-        copy = Math.min(length, dataStream.size() - pos);
-        System.arraycopy(dataStream.toByteArray(), pos, buffer, offset, copy);
+        copy = Math.min(length, dataSize - pos);
+        System.arraycopy(data, pos, buffer, offset, copy);
         pos += copy;
-        if(pos >= dataStream.size())
+        if(pos >= dataSize)
             pos = 0;
 
         return copy;
-    }
-
-    @Override
-    public void close() {
-        Log.d(TAG, "Stream is closed");
-        isFirstBoundary = true;
-        pos = 0;
     }
 }

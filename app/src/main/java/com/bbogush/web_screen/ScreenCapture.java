@@ -16,6 +16,8 @@ import android.view.Display;
 import android.view.WindowManager;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ScreenCapture {
@@ -35,7 +37,11 @@ public class ScreenCapture {
     private Handler handler = null;
 
     private Bitmap bitmap = null;
-    public AtomicBoolean bitmapDataLock = new AtomicBoolean(false);
+
+    public interface OnBitmapAvailableListener {
+        void onBitmapAvailable(Bitmap bitmap);
+    }
+    private final List<OnBitmapAvailableListener> bitmapListenersList = new ArrayList<>();
 
     public ScreenCapture(MediaProjection mediaProjection, Context context) {
         this.mediaProjection = mediaProjection;
@@ -72,6 +78,11 @@ public class ScreenCapture {
         });
     }
 
+    private void reset() {
+        releaseVirtualDisplay();
+        createVirtualDisplay();
+    }
+
     private void startRotationDetector() {
         Runnable runnable = new Runnable() {
             @Override
@@ -86,8 +97,7 @@ public class ScreenCapture {
                         Log.d(TAG, "Rotation detected\n" + "w=" + metrics.widthPixels + " h=" +
                                 metrics.heightPixels + " d=" + metrics.densityDpi);
                         screenMetrics = metrics;
-                        releaseVirtualDisplay();
-                        createVirtualDisplay();
+                        reset();
                     }
                     try {
                         Thread.sleep(500);
@@ -130,34 +140,36 @@ public class ScreenCapture {
     private class ImageAvailableListener implements ImageReader.OnImageAvailableListener {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            synchronized (bitmapDataLock) {
-                Image image = imageReader.acquireLatestImage();
-                if (image != null) {
-                    processScreenImage(image);
-                    image.close();
-                }
-            }
+            Image image = reader.acquireLatestImage();
+            if (image == null)
+                return;
+            processScreenImage(image);
+            image.close();
         }
     }
 
-    private void processScreenImage(Image image) {
+    private synchronized void processScreenImage(Image image) {
+        if (bitmapListenersList.isEmpty())
+            return;
+
         Image.Plane[] planes = image.getPlanes();
         ByteBuffer buffer = planes[0].getBuffer();
         int width = planes[0].getRowStride() / planes[0].getPixelStride();
 
-        synchronized (bitmapDataLock) {
-            if (width > image.getWidth()) {
-                Bitmap tempBitmap = Bitmap.createBitmap(width, image.getHeight(),
-                        Bitmap.Config.ARGB_8888);
-                tempBitmap.copyPixelsFromBuffer(buffer);
-                bitmap = Bitmap.createBitmap(tempBitmap, 0, 0, image.getWidth(),
-                        image.getHeight());
-            } else {
-                bitmap = Bitmap.createBitmap(image.getWidth(), image.getHeight(),
-                        Bitmap.Config.ARGB_8888);
-                bitmap.copyPixelsFromBuffer(planes[0].getBuffer());
-            }
+        if (width > image.getWidth()) {
+            Bitmap tempBitmap = Bitmap.createBitmap(width, image.getHeight(),
+                    Bitmap.Config.ARGB_8888);
+            tempBitmap.copyPixelsFromBuffer(buffer);
+            bitmap = Bitmap.createBitmap(tempBitmap, 0, 0, image.getWidth(), image.getHeight());
+        } else {
+            bitmap = Bitmap.createBitmap(image.getWidth(), image.getHeight(),
+                    Bitmap.Config.ARGB_8888);
+            bitmap.copyPixelsFromBuffer(planes[0].getBuffer());
         }
+
+        for (OnBitmapAvailableListener listener : bitmapListenersList)
+            listener.onBitmapAvailable(bitmap);
+        bitmap.recycle();
     }
 
     private class MediaProjectionStopCallback extends MediaProjection.Callback {
@@ -173,7 +185,13 @@ public class ScreenCapture {
         }
     }
 
-    public Bitmap getBitmap() {
-        return bitmap;
+    public synchronized void registerOnBitmapAvailableListener(OnBitmapAvailableListener listener) {
+        bitmapListenersList.add(listener);
+        reset();
+    }
+
+    public synchronized void
+        unregisterOnBitmapAvailableListener(OnBitmapAvailableListener listener) {
+        bitmapListenersList.remove(listener);
     }
 }
