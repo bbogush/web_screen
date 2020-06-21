@@ -6,6 +6,7 @@ import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 public class MjpegStream extends InputStream {
     private static final String TAG = MjpegStream.class.getSimpleName();
@@ -78,7 +79,7 @@ public class MjpegStream extends InputStream {
             isFirstBoundary = false;
         }
         dataStream.write(contentTypeByteArray, 0, contentTypeByteArray.length);
-        String contentLengthString = String.format(contentLength, imageStream.size());
+        String contentLengthString = String.format(Locale.US, contentLength, imageStream.size());
         byte [] contentLengthStringByteArray =
                 contentLengthString.getBytes(StandardCharsets.US_ASCII);
         dataStream.write(contentLengthStringByteArray, 0, contentLengthStringByteArray.length);
