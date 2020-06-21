@@ -17,6 +17,11 @@ public class MjpegStream extends InputStream {
     private static final String contentLength = "Content-Length: %d\r\n\r\n";
     public static final String boundaryLine = "\r\n--" + boundary + "\r\n";
 
+    private static final byte [] boundaryLineByteArray =
+            boundaryLine.getBytes(StandardCharsets.US_ASCII);
+    private static final byte [] contentTypeByteArray =
+            contentType.getBytes(StandardCharsets.US_ASCII);
+
     private ScreenCapture screenCapture;
     private ByteArrayOutputStream imageStream = new ByteArrayOutputStream();
     private ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
@@ -69,18 +74,16 @@ public class MjpegStream extends InputStream {
     private void createContent() {
         dataStream.reset();
         if (isFirstBoundary) {
-            dataStream.write(boundaryLine.getBytes(StandardCharsets.US_ASCII), 0,
-                    boundaryLine.toCharArray().length);
+            dataStream.write(boundaryLineByteArray, 0, boundaryLineByteArray.length);
             isFirstBoundary = false;
         }
-        dataStream.write(contentType.getBytes(StandardCharsets.US_ASCII), 0,
-                contentType.toCharArray().length);
+        dataStream.write(contentTypeByteArray, 0, contentTypeByteArray.length);
         String contentLengthString = String.format(contentLength, imageStream.size());
-        dataStream.write(contentLengthString.getBytes(StandardCharsets.US_ASCII), 0,
-                contentLengthString.toCharArray().length);
+        byte [] contentLengthStringByteArray =
+                contentLengthString.getBytes(StandardCharsets.US_ASCII);
+        dataStream.write(contentLengthStringByteArray, 0, contentLengthStringByteArray.length);
         dataStream.write(imageStream.toByteArray(), 0, imageStream.size());
-        dataStream.write(boundaryLine.getBytes(StandardCharsets.US_ASCII), 0,
-                boundaryLine.toCharArray().length);
+        dataStream.write(boundaryLineByteArray, 0, boundaryLineByteArray.length);
         data = dataStream.toByteArray();
         dataSize = dataStream.size();
     }
