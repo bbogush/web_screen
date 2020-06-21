@@ -18,7 +18,6 @@ import android.view.WindowManager;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ScreenCapture {
     private static final String TAG = ScreenCapture.class.getSimpleName();
@@ -148,7 +147,7 @@ public class ScreenCapture {
         }
     }
 
-    private synchronized void processScreenImage(Image image) {
+    private void processScreenImage(Image image) {
         if (bitmapListenersList.isEmpty())
             return;
 
@@ -167,8 +166,10 @@ public class ScreenCapture {
             bitmap.copyPixelsFromBuffer(planes[0].getBuffer());
         }
 
-        for (OnBitmapAvailableListener listener : bitmapListenersList)
-            listener.onBitmapAvailable(bitmap);
+        synchronized (bitmapListenersList) {
+            for (OnBitmapAvailableListener listener : bitmapListenersList)
+                listener.onBitmapAvailable(bitmap);
+        }
         bitmap.recycle();
     }
 
@@ -185,13 +186,16 @@ public class ScreenCapture {
         }
     }
 
-    public synchronized void registerOnBitmapAvailableListener(OnBitmapAvailableListener listener) {
-        bitmapListenersList.add(listener);
+    public void registerOnBitmapAvailableListener(OnBitmapAvailableListener listener) {
+        synchronized (bitmapListenersList) {
+            bitmapListenersList.add(listener);
+        }
         reset();
     }
 
-    public synchronized void
-        unregisterOnBitmapAvailableListener(OnBitmapAvailableListener listener) {
-        bitmapListenersList.remove(listener);
+    public void unregisterOnBitmapAvailableListener(OnBitmapAvailableListener listener) {
+        synchronized (bitmapListenersList) {
+            bitmapListenersList.remove(listener);
+        }
     }
 }
