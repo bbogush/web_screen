@@ -6,7 +6,6 @@ import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 
 public class MjpegStream extends InputStream {
     private static final String TAG = MjpegStream.class.getSimpleName();
@@ -14,15 +13,13 @@ public class MjpegStream extends InputStream {
     private static final int BOUNDARY_LEN = 20;
     public static final String boundary = Utils.randomString(BOUNDARY_LEN);
 
-    private static final String contentType = "Content-type: image/jpeg\r\n";
-    private static final String contentLength = "Content-Length: %d\r\n\r\n";
+    private static final String contentType = "Content-type: image/jpeg\r\n\r\n";
     public static final String boundaryLine = "\r\n--" + boundary + "\r\n";
 
     private static final byte [] boundaryLineByteArray =
             boundaryLine.getBytes(StandardCharsets.US_ASCII);
     private static final byte [] contentTypeByteArray =
             contentType.getBytes(StandardCharsets.US_ASCII);
-    private byte [] contentLengthStringByteArray;
     private byte [] imageByteArray;
 
     private ScreenCapture screenCapture;
@@ -33,9 +30,8 @@ public class MjpegStream extends InputStream {
 
     private static final int STATE_FIRST_BOUNDARY = 0;
     private static final int STATE_CONTENT_TYPE = 1;
-    private static final int STATE_CONTENT_LENGTH = 2;
-    private static final int STATE_IMAGE = 3;
-    private static final int STATE_TRAIL_BOUNDARY = 4;
+    private static final int STATE_IMAGE = 2;
+    private static final int STATE_TRAIL_BOUNDARY = 3;
     private int state = STATE_FIRST_BOUNDARY;
 
     private final Object syncToken = new Object();
@@ -74,11 +70,6 @@ public class MjpegStream extends InputStream {
     @Override
     public int read() {
         throw new UnsupportedOperationException("read() method is not implemented");
-    }
-
-    private void initContentLength() {
-        String contentLengthString = String.format(Locale.US, contentLength, imageStream.size());
-        contentLengthStringByteArray = contentLengthString.getBytes(StandardCharsets.US_ASCII);
     }
 
     //TODO avoid toByteArray
@@ -143,33 +134,10 @@ public class MjpegStream extends InputStream {
                 length -= copy;
                 if (length > 0) {
                     sPos = 0;
-                    state = STATE_CONTENT_LENGTH;
-                    initContentLength();
-                    // fall through
-                } else if (sPos == contentTypeByteArray.length) {
-                    sPos = 0;
-                    dPos = 0;
-                    state = STATE_CONTENT_LENGTH;
-                    initContentLength();
-                    break;
-                } else {
-                    dPos = 0;
-                    break;
-                }
-            case STATE_CONTENT_LENGTH:
-                copy = Math.min(length, contentLengthStringByteArray.length - sPos);
-                System.arraycopy(contentLengthStringByteArray, sPos, buffer, offset + dPos, copy);
-                sPos += copy;
-                dPos += copy;
-                copied += copy;
-
-                length -= copy;
-                if (length > 0) {
-                    sPos = 0;
                     state = STATE_IMAGE;
                     initImage();
                     // fall through
-                } else if (sPos == contentLengthStringByteArray.length) {
+                } else if (sPos == contentTypeByteArray.length) {
                     sPos = 0;
                     dPos = 0;
                     state = STATE_IMAGE;
