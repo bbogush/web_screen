@@ -57,9 +57,8 @@ public class MjpegStream extends InputStream {
         public void onBitmapAvailable(Bitmap bitmap) {
             synchronized (syncToken) {
                 // drop new image if network is slow
-                if (imageStreamLock.get()) {
+                if (imageStreamLock.get())
                     return;
-                }
                 imageStream.reset();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 80, imageStream);
 
