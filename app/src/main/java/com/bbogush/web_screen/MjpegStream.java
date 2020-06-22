@@ -61,7 +61,7 @@ public class MjpegStream extends InputStream {
                     return;
                 }
                 imageStream.reset();
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, imageStream);
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 80, imageStream);
 
                 syncToken.notify();
             }
