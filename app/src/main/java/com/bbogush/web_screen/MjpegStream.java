@@ -6,6 +6,7 @@ import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MjpegStream extends InputStream {
     private static final String TAG = MjpegStream.class.getSimpleName();
@@ -23,7 +24,8 @@ public class MjpegStream extends InputStream {
     private byte [] imageByteArray;
 
     private ScreenCapture screenCapture;
-    private ByteArrayOutputStream imageStream = new ByteArrayOutputStream();
+    private ImageStream imageStream = new ImageStream();
+    private AtomicBoolean imageStreamLock = new AtomicBoolean(false);
 
     private int sPos = 0, dPos = 0;
     private boolean skipWait;
@@ -53,8 +55,12 @@ public class MjpegStream extends InputStream {
     private class OnBitmapAvailableListener implements ScreenCapture.OnBitmapAvailableListener {
         @Override
         public void onBitmapAvailable(Bitmap bitmap) {
-            imageStream.reset();
-            synchronized(syncToken) {
+            synchronized (syncToken) {
+                // drop new image if network is slow
+                if (imageStreamLock.get()) {
+                    return;
+                }
+                imageStream.reset();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, imageStream);
 
                 syncToken.notify();
@@ -72,11 +78,6 @@ public class MjpegStream extends InputStream {
         throw new UnsupportedOperationException("read() method is not implemented");
     }
 
-    //TODO avoid toByteArray
-    private void initImage() {
-        imageByteArray = imageStream.toByteArray();
-    }
-
     @Override
     public int read(byte[] buffer, int offset, int length) {
         int copy = 0, copied = 0;
@@ -85,7 +86,9 @@ public class MjpegStream extends InputStream {
             case STATE_FIRST_BOUNDARY:
                 synchronized (syncToken) {
                     try {
+                        imageStreamLock.set(false);
                         syncToken.wait();
+                        imageStreamLock.set(true);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                         return 0;
@@ -135,13 +138,13 @@ public class MjpegStream extends InputStream {
                 if (length > 0) {
                     sPos = 0;
                     state = STATE_IMAGE;
-                    initImage();
+                    imageByteArray = imageStream.getByteArray();
                     // fall through
                 } else if (sPos == contentTypeByteArray.length) {
                     sPos = 0;
                     dPos = 0;
                     state = STATE_IMAGE;
-                    initImage();
+                    imageByteArray = imageStream.getByteArray();
                     break;
                 } else {
                     dPos = 0;
@@ -169,6 +172,8 @@ public class MjpegStream extends InputStream {
                     break;
                 }
             case STATE_TRAIL_BOUNDARY:
+                imageStreamLock.set(false);
+
                 copy = Math.min(length, boundaryLineByteArray.length - sPos);
                 System.arraycopy(boundaryLineByteArray, sPos, buffer, offset + dPos, copy);
                 sPos += copy;
@@ -187,5 +192,11 @@ public class MjpegStream extends InputStream {
         }
 
         return copied;
+    }
+
+    public class ImageStream extends ByteArrayOutputStream {
+        public byte [] getByteArray() {
+            return buf;
+        }
     }
 }
