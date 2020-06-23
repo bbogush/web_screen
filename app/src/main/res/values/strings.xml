@@ -9,5 +9,6 @@
     <string name="general_header">General</string>
     <string name="port_title">Port</string>
     <string name="port_description">Server port for incoming connections.\nAllowed values: 1025-65535\nDefault: 8080</string>
-    <string name="adaptive_banner_ad_unit_id">ca-app-pub-3940256099942544/6300978111</string>
+    <string name="adaptive_banner_ad_unit_id_test">ca-app-pub-3940256099942544/6300978111</string>
+    <string name="adaptive_banner_ad_unit_id">ca-app-pub-6312357173588580/8818719441</string>
 </resources>

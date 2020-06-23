@@ -441,7 +441,9 @@ public class MainActivity extends AppCompatActivity {
 
         RelativeLayout adRelativeLayout = findViewById(R.id.adRelativeLayout);
         adView = new AdView(this);
-        adView.setAdUnitId(getString(R.string.adaptive_banner_ad_unit_id));
+        String adUnitId = getString(BuildConfig.DEBUG ? R.string.adaptive_banner_ad_unit_id_test :
+                R.string.adaptive_banner_ad_unit_id);
+        adView.setAdUnitId(adUnitId);
         adRelativeLayout.addView(adView);
 
         AdSize adSize = getAdSize();
