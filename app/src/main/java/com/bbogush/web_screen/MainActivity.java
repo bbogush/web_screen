@@ -8,6 +8,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.LinkAddress;
@@ -386,6 +388,8 @@ public class MainActivity extends AppCompatActivity {
         List<NetworkHelper.IpInfo> ipInfoList = networkHelper.getIpInfo();
         if (ipInfoList.isEmpty()) {
             TextView interfaceTextView = new TextView(this);
+            interfaceTextView.setTextColor(Color.BLACK);
+            interfaceTextView.setTypeface(null, Typeface.BOLD);
             interfaceTextView.setText(getResources().getString(R.string.no_active_connections));
             urlLayout.addView(interfaceTextView);
             return;
@@ -393,13 +397,23 @@ public class MainActivity extends AppCompatActivity {
 
         for (NetworkHelper.IpInfo ipInfo : ipInfoList) {
             TextView interfaceTextView = new TextView(this);
-            String title = ipInfo.interfaceType + " (" + ipInfo.interfaceName + "):";
+            interfaceTextView.setTextColor(Color.BLACK);
+            interfaceTextView.setTypeface(null, Typeface.BOLD);
+            String title = ipInfo.interfaceType + " (" + ipInfo.interfaceName + ")";
             interfaceTextView.setText(title);
             urlLayout.addView(interfaceTextView);
 
             List<LinkAddress> addresses = ipInfo.addresses;
             for (LinkAddress address : addresses) {
                 TextView urlTextView = new TextView(this);
+                urlTextView.setTextColor(Color.BLACK);
+                LinearLayout.LayoutParams params = new LinearLayout.
+                        LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                params.setMargins(10, 10, 10, 10);
+                urlTextView.setLayoutParams(params);
+                urlTextView.setTextSize(18);
+
                 String url;
                 if (address.getAddress() instanceof Inet6Address) {
                     url ="http://[" + address.getAddress().getHostAddress() + "]:" +
