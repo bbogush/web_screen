@@ -412,7 +412,7 @@ public class MainActivity extends AppCompatActivity {
                         LinearLayout.LayoutParams.WRAP_CONTENT);
                 params.setMargins(10, 10, 10, 10);
                 urlTextView.setLayoutParams(params);
-                urlTextView.setTextSize(18);
+                urlTextView.setTextSize(16);
 
                 String url;
                 if (address.getAddress() instanceof Inet6Address) {
