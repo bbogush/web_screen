@@ -79,8 +79,10 @@ public class MjpegStream extends InputStream {
 
     @Override
     public int read(byte[] buffer, int offset, int length) {
-        int copy = 0, copied = 0;
+        // trigger image refresh
+        screenCapture.reset();
 
+        int copy = 0, copied = 0;
         switch (state) {
             case STATE_FIRST_BOUNDARY:
                 synchronized (syncToken) {

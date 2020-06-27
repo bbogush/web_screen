@@ -77,7 +77,7 @@ public class ScreenCapture {
         });
     }
 
-    private void reset() {
+    public void reset() {
         releaseVirtualDisplay();
         createVirtualDisplay();
     }
@@ -191,7 +191,6 @@ public class ScreenCapture {
         synchronized (bitmapListenersList) {
             bitmapListenersList.add(listener);
         }
-        reset();
     }
 
     public void unregisterOnBitmapAvailableListener(OnBitmapAvailableListener listener) {
