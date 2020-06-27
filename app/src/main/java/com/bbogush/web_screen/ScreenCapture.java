@@ -103,6 +103,7 @@ public class ScreenCapture {
                     } catch (InterruptedException e) {
                         Log.d(TAG, "Rotation detector exit");
                         Thread.interrupted();
+                        break;
                     }
                 }
             }
