@@ -3,11 +3,14 @@ package com.bbogush.web_screen;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.os.Build;
+import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 public class PermissionHelper {
+    private static final String TAG = PermissionHelper.class.getSimpleName();
 
     public interface OnPermissionGrantedListener {
         void onAccessNetworkStatePermissionGranted(boolean isGranted);
@@ -34,6 +37,7 @@ public class PermissionHelper {
     public void requestAccessNetworkStatePermission() {
         if (ContextCompat.checkSelfPermission(activity.getApplicationContext(),
                 Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Network state permission granted");
             onPermissionGrantedListener.onAccessNetworkStatePermissionGranted(true);
             return;
         }
@@ -48,6 +52,7 @@ public class PermissionHelper {
 
         if (ContextCompat.checkSelfPermission(activity.getApplicationContext(),
                 Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Internet permission granted");
             onPermissionGrantedListener.onInternetPermissionGranted(true);
             return;
         }
@@ -59,6 +64,7 @@ public class PermissionHelper {
     public void requestReadExternalStoragePermission() {
         if (ContextCompat.checkSelfPermission(activity.getApplicationContext(),
                 Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Read external storage permission granted");
             onPermissionGrantedListener.onReadExternalStoragePermissionGranted(true);
             return;
         }
@@ -71,6 +77,7 @@ public class PermissionHelper {
     public void requestWakeLockPermission() {
         if (ContextCompat.checkSelfPermission(activity.getApplicationContext(),
                 Manifest.permission.WAKE_LOCK) == PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Wake lock permission granted");
             onPermissionGrantedListener.onWakeLockPermissionGranted(true);
             return;
         }
@@ -81,15 +88,20 @@ public class PermissionHelper {
     }
 
     public void requestForegroundServicePermission() {
-        if (ContextCompat.checkSelfPermission(activity.getApplicationContext(),
-                Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED) {
-            onPermissionGrantedListener.onForegroundServicePermissionGranted(true);
-            return;
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            if (ContextCompat.checkSelfPermission(activity.getApplicationContext(),
+                    Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "Foreground service permission granted");
+                onPermissionGrantedListener.onForegroundServicePermissionGranted(true);
+                return;
+            }
 
-        ActivityCompat.requestPermissions(activity,
-                new String[]{ Manifest.permission.FOREGROUND_SERVICE },
-                PERM_FOREGROUND_SERVICE);
+            ActivityCompat.requestPermissions(activity,
+                    new String[]{ Manifest.permission.FOREGROUND_SERVICE },
+                    PERM_FOREGROUND_SERVICE);
+        } else {
+            onPermissionGrantedListener.onForegroundServicePermissionGranted(true);
+        }
     }
 
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
@@ -98,40 +110,50 @@ public class PermissionHelper {
             case PERM_ACCESS_NETWORK_STATE:
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "Network state permission granted");
                     onPermissionGrantedListener.onAccessNetworkStatePermissionGranted(true);
                 } else {
+                    Log.d(TAG, "Network state permission denied");
                     onPermissionGrantedListener.onAccessNetworkStatePermissionGranted(false);
                 }
                 break;
             case PERM_INTERNET:
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "Internet permission granted");
                     onPermissionGrantedListener.onInternetPermissionGranted(true);
                 } else {
+                    Log.d(TAG, "Internet permission denied");
                     onPermissionGrantedListener.onInternetPermissionGranted(false);
                 }
                 break;
             case PERM_READ_EXTERNAL_STORAGE:
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "External storage permission granted");
                     onPermissionGrantedListener.onReadExternalStoragePermissionGranted(true);
                 } else {
+                    Log.d(TAG, "External storage permission denied");
                     onPermissionGrantedListener.onReadExternalStoragePermissionGranted(false);
                 }
                 break;
             case PERM_WAKE_LOCK:
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "Wake lock permission granted");
                     onPermissionGrantedListener.onWakeLockPermissionGranted(true);
                 } else {
+                    Log.d(TAG, "Wake lock permission denied");
                     onPermissionGrantedListener.onWakeLockPermissionGranted(false);
                 }
                 break;
             case PERM_FOREGROUND_SERVICE:
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "Foreground service permission granted");
                     onPermissionGrantedListener.onForegroundServicePermissionGranted(true);
                 } else {
+                    Log.d(TAG, "Foreground service permission denied");
                     onPermissionGrantedListener.onForegroundServicePermissionGranted(false);
                 }
                 break;
