@@ -1,6 +1,8 @@
 package com.bbogush.web_screen;
 
+import android.content.Context;
 import android.graphics.Bitmap;
+import android.os.PowerManager;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
@@ -38,6 +40,8 @@ public class MjpegStream extends InputStream {
 
     private final Object syncToken = new Object();
     private OnBitmapAvailableListener bitmapListener = new OnBitmapAvailableListener();
+
+    private boolean initRead = true;
 
     public MjpegStream(ScreenCapture screenCapture) {
         super();
@@ -79,8 +83,11 @@ public class MjpegStream extends InputStream {
 
     @Override
     public int read(byte[] buffer, int offset, int length) {
-        // trigger image refresh
-        screenCapture.reset();
+        // workaround to trigger image refresh on new connection
+        if (initRead) {
+            screenCapture.reset();
+            initRead = false;
+        }
 
         int copy = 0, copied = 0;
         switch (state) {
