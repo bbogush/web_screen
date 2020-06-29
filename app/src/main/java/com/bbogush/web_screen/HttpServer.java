@@ -1,7 +1,11 @@
 package com.bbogush.web_screen;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,7 +67,7 @@ public class HttpServer extends NanoHTTPD {
         if (uri.contentEquals("/")) {
             return handleRootRequest(session);
         } else if (uri.contentEquals("/mjpeg")) {
-            return handleMjpegRequest();
+            return handleMjpegRequest(session);
         }
 
         return notFoundResponse();
@@ -172,7 +176,9 @@ public class HttpServer extends NanoHTTPD {
         return string;
     }
 
-    private Response handleMjpegRequest() {
+    private Response handleMjpegRequest(IHTTPSession session) {
+        notifyAboutNewConnection(session);
+
         Response res;
         String mime = "multipart/x-mixed-replace; boundary=" + MjpegStream.boundary;
         res = newChunkedResponse(Response.Status.OK, mime, new MjpegStream(capture));
@@ -183,6 +189,18 @@ public class HttpServer extends NanoHTTPD {
         res.addHeader("Expires", "-1");
 
         return res;
+    }
+
+    private void notifyAboutNewConnection(IHTTPSession session) {
+        // The message is used to trigger screen redraw on new connection
+        final String remoteAddress = session.getRemoteIpAddress();
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(context, "WebScreen\nNew connection from " + remoteAddress,
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     public void setMouseAccessibilityService(MouseAccessibilityService mouseAccessibilityService) {
