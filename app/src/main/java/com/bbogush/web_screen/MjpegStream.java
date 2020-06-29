@@ -83,12 +83,6 @@ public class MjpegStream extends InputStream {
 
     @Override
     public int read(byte[] buffer, int offset, int length) {
-        // workaround to trigger image refresh on new connection
-        if (initRead) {
-            screenCapture.reset();
-            initRead = false;
-        }
-
         int copy = 0, copied = 0;
         switch (state) {
             case STATE_FIRST_BOUNDARY:
