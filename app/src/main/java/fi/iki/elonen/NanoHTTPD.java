@@ -1625,8 +1625,11 @@ public abstract class NanoHTTPD {
                 outputStream.flush();
                 safeClose(this.data);
             } catch (IOException ioe) {
-                if (!ioe.getMessage().contains("Broken pipe") &&
-                        !ioe.getMessage().contains("Socket closed")) {
+                if (ioe.getMessage().contains("Broken pipe") ||
+                        ioe.getMessage().contains("Socket closed") ||
+                        ioe.getMessage().contains("Connection reset")) {
+                    LOG.info("Connection closed: " + ioe.getMessage());
+                } else {
                     NanoHTTPD.LOG.log(Level.SEVERE, "Could not send response to the client", ioe);
                 }
             }
