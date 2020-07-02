@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="24"
+   height="24"
+   viewBox="0 0 24 24"
+   version="1.1"
+   id="svg1427"
+   sodipodi:docname="main_icon.svg"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)">
+  <metadata
+     id="metadata1433">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs1431" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1011"
+     id="namedview1429"
+     showgrid="true"
+     showguides="true"
+     inkscape:zoom="13.906433"
+     inkscape:cx="27.017439"
+     inkscape:cy="11.307479"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1427">
+    <inkscape:grid
+       type="xygrid"
+       id="grid1978" />
+  </sodipodi:namedview>
+  <path
+     fill="none"
+     d="M0 0h24v24H0V0z"
+     id="path1423" />
+  <path
+     d="M 17,1 H 7 C 5.9,1 5.01,1.9 5.01,3 v 18 c 0,1.1 0.89,2 1.99,2 h 10 c 1.1,0 2,-0.9 2,-2 V 3 C 19,1.9 18.1,1 17,1 Z m 1,19 H 6 V 4 h 12 z m -5.2,-6.78 v 1.75 l 2.81,-2.62 c 0.21,-0.2 0.21,-0.53 0,-0.73 L 12.8,9 v 1.7 c -3.11,0.43 -4.35,2.56 -4.8,4.7 1.11,-1.5 2.58,-2.18 4.8,-2.18 z"
+     id="path1425"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="sssssssssccccccccccccc" />
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-weight:normal;font-size:4.00944185px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.10023605"
+     x="7.7265205"
+     y="7.967227"
+     id="text1982"
+     transform="scale(1.004803,0.99521996)"><tspan
+       sodipodi:role="line"
+       id="tspan1980"
+       x="7.7265205"
+       y="7.967227"
+       style="stroke-width:0.10023605">Web</tspan></text>
+</svg>
