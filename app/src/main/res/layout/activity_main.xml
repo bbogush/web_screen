@@ -27,46 +27,88 @@
         </com.google.android.material.appbar.AppBarLayout>
 
         <TextView
-            android:id="@+id/connectionURLTextView"
+            android:id="@+id/urls_header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:layout_marginBottom="10dp"
-            android:text="@string/connection_url"
-            android:textColor="?android:attr/textColorPrimary"
+            android:text="@string/urls_header"
+            android:textAlignment="center"
+            android:textColor="#4a4a4a"
             android:textSize="18sp" />
 
         <LinearLayout
             android:id="@+id/urlLinerLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:orientation="horizontal"
+            android:layout_marginRight="32dp"
+            android:layout_marginLeft="32dp"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_item"
+            android:padding="12dp">
 
-        <Switch
+            <ImageView
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:src="@drawable/wifi_icon"
+                />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="12dp"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical" >
+
+                <TextView
+                    android:id="@+id/connectionTypeHeader"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Wi-Fi"
+                    android:textSize="18sp"
+                    android:textColor="#4a4a4a"/>
+
+                <TextView
+                    android:id="@+id/connectionURL"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="http://192.168.2.102:8080"
+                    android:textSize="16sp"
+                    android:textColor="#5BA4ED"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <ToggleButton
             android:id="@+id/remoteControlEnableSwitch"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
-            android:text="@string/enable_remote_control"
-            android:textSize="18sp" />
+            android:layout_height="75dp"
+            android:layout_marginLeft="32dp"
+            android:layout_marginRight="32dp"
+            android:layout_marginBottom="20dp"
+            android:layout_marginTop="50dp"
+            android:background="@drawable/bg_button_off"
+            android:textOff="@string/button_remote_control_off"
+            android:textOn="@string/button_remote_control_on"
+            android:textColor="#4a4a4a"/>
 
         <ToggleButton
             android:id="@+id/startButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:checked="false"
-            android:textOff="@string/button_start"
-            android:textOn="@string/button_stop"
-            android:textSize="14sp" />
+            android:layout_height="75dp"
+            android:layout_marginLeft="32dp"
+            android:layout_marginRight="32dp"
+            android:layout_marginBottom="30dp"
+            android:background="@drawable/bg_button_off"
+            android:textOff="@string/button_stop"
+            android:textOn="@string/button_start"
+            android:textColor="#4a4a4a" />
 
-        <RelativeLayout
+        <LinearLayout
             android:id="@+id/adRelativeLayout"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"></RelativeLayout>
-
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+        </LinearLayout>
     </LinearLayout>
-
 </ScrollView>
 

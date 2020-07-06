@@ -24,6 +24,7 @@ import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -81,17 +82,23 @@ public class MainActivity extends AppCompatActivity {
         startButton.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked)
+                if (isChecked) {
+                    buttonView.setBackground(getDrawable(R.drawable.bg_button_on));
                     start();
-                else
+                }
+                else {
+                    buttonView.setBackground(getDrawable(R.drawable.bg_button_off));
                     stop();
+                }
             }
         });
 
-        final Switch remoteControl = findViewById(R.id.remoteControlEnableSwitch);
+        ToggleButton remoteControl = findViewById(R.id.remoteControlEnableSwitch);
         remoteControl.setOnCheckedChangeListener(new Switch.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                buttonView.setBackground(getDrawable(isChecked ? R.drawable.bg_button_on :
+                        R.drawable.bg_button_off));
                 remoteControlEnable(isChecked);
             }
         });
@@ -103,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
 
         initPermission();
 
-        createUrl();
+        initUrl();
     }
 
     @Override
@@ -328,12 +335,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setRemoteControlSwitch() {
-        Switch remoteControl = findViewById(R.id.remoteControlEnableSwitch);
+        ToggleButton remoteControl = findViewById(R.id.remoteControlEnableSwitch);
         remoteControl.setChecked(true);
     }
 
     private void resetRemoteControlSwitch() {
-        Switch remoteControl = findViewById(R.id.remoteControlEnableSwitch);
+        ToggleButton remoteControl = findViewById(R.id.remoteControlEnableSwitch);
         remoteControl.setChecked(false);
     }
 
@@ -351,11 +358,9 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void createUrl() {
+    public void initUrl() {
         LinearLayout urlLayout = findViewById(R.id.urlLinerLayout);
-        TextView interfaceTextView = new TextView(this);
-        interfaceTextView.setText(getResources().getString(R.string.no_active_connections));
-        urlLayout.addView(interfaceTextView);
+        urlLayout.setVisibility(View.INVISIBLE);
         permissionHelper.requestAccessNetworkStatePermission();
     }
 
@@ -382,47 +387,32 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void urlUpdate() {
+        TextView urlsHeader = findViewById(R.id.urls_header);
+        urlsHeader.setText(getResources().getString(R.string.no_active_connections));
         LinearLayout urlLayout = findViewById(R.id.urlLinerLayout);
-        urlLayout.removeAllViews();
+        urlLayout.setVisibility(View.INVISIBLE);
 
         List<NetworkHelper.IpInfo> ipInfoList = networkHelper.getIpInfo();
-        if (ipInfoList.isEmpty()) {
-            TextView interfaceTextView = new TextView(this);
-            interfaceTextView.setTextColor(Color.BLACK);
-            interfaceTextView.setTypeface(null, Typeface.BOLD);
-            interfaceTextView.setText(getResources().getString(R.string.no_active_connections));
-            urlLayout.addView(interfaceTextView);
-            return;
-        }
-
         for (NetworkHelper.IpInfo ipInfo : ipInfoList) {
-            TextView interfaceTextView = new TextView(this);
-            interfaceTextView.setTextColor(Color.BLACK);
-            interfaceTextView.setTypeface(null, Typeface.BOLD);
-            String title = ipInfo.interfaceType + " (" + ipInfo.interfaceName + ")";
-            interfaceTextView.setText(title);
-            urlLayout.addView(interfaceTextView);
+            if (!ipInfo.interfaceType.equals("Wi-Fi"))
+                continue;
+
+            String type = ipInfo.interfaceType + " (" + ipInfo.interfaceName + ")";
+            TextView connectionType = findViewById(R.id.connectionTypeHeader);
+            connectionType.setText(type);
 
             List<LinkAddress> addresses = ipInfo.addresses;
             for (LinkAddress address : addresses) {
-                TextView urlTextView = new TextView(this);
-                urlTextView.setTextColor(Color.BLACK);
-                LinearLayout.LayoutParams params = new LinearLayout.
-                        LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT);
-                params.setMargins(10, 10, 10, 10);
-                urlTextView.setLayoutParams(params);
-                urlTextView.setTextSize(16);
+                if (address.getAddress() instanceof Inet6Address)
+                    continue;
 
-                String url;
-                if (address.getAddress() instanceof Inet6Address) {
-                    url ="http://[" + address.getAddress().getHostAddress() + "]:" +
-                            httpServerPort;
-                } else {
-                    url = "http://" + address.getAddress().getHostAddress() + ":" + httpServerPort;
-                }
-                urlTextView.setText(url);
-                urlLayout.addView(urlTextView);
+                String url = "http://" + address.getAddress().getHostAddress() + ":" +
+                        httpServerPort;
+                TextView connectionURL = findViewById(R.id.connectionURL);
+                connectionURL.setText(url);
+                urlsHeader.setText(getResources().getString(R.string.urls_header));
+                urlLayout.setVisibility(View.VISIBLE);
+                break;
             }
         }
     }
@@ -453,7 +443,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        RelativeLayout adRelativeLayout = findViewById(R.id.adRelativeLayout);
+        LinearLayout adRelativeLayout = findViewById(R.id.adRelativeLayout);
         adView = new AdView(this);
         String adUnitId = getString(BuildConfig.DEBUG ? R.string.adaptive_banner_ad_unit_id_test :
                 R.string.adaptive_banner_ad_unit_id);

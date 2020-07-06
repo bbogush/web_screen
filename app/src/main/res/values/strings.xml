@@ -1,10 +1,11 @@
 <resources>
     <string name="app_name">WebScreen</string>
-    <string name="connection_url">Connection URL:</string>
-    <string name="enable_remote_control">Enable remote control</string>
-    <string name="button_start">Start</string>
-    <string name="button_stop">Stop</string>
-    <string name="no_active_connections">No active connections</string>
+    <string name="urls_header">Visit following URL</string>
+    <string name="button_remote_control_on">Enable remote control</string>
+    <string name="button_remote_control_off">Disable remote control</string>
+    <string name="button_start">Start screen share</string>
+    <string name="button_stop">Stop screen share</string>
+    <string name="no_active_connections">No active Wi-Fi connection</string>
     <string name="action_settings">Settings</string>
     <string name="general_header">General</string>
     <string name="port_title">Port</string>
