@@ -1,114 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" >
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        tools:context=".MainActivity">
+        android:layout_height="wrap_content">
 
-        <com.google.android.material.appbar.AppBarLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:theme="@style/AppTheme.AppBarOverlay">
+            android:orientation="vertical"
+            tools:context=".MainActivity">
 
-            <androidx.appcompat.widget.Toolbar
-                android:id="@+id/toolbar"
+            <com.google.android.material.appbar.AppBarLayout
                 android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                android:background="?attr/colorPrimary"
-                app:popupTheme="@style/AppTheme.PopupOverlay" />
-
-        </com.google.android.material.appbar.AppBarLayout>
-
-        <TextView
-            android:id="@+id/urls_header"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
-            android:text="@string/urls_header"
-            android:textAlignment="center"
-            android:textColor="#4a4a4a"
-            android:textSize="18sp" />
-
-        <LinearLayout
-            android:id="@+id/urlLinerLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginRight="32dp"
-            android:layout_marginLeft="32dp"
-            android:layout_marginBottom="24dp"
-            android:background="@drawable/bg_item"
-            android:padding="12dp">
-
-            <ImageView
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:src="@drawable/wifi_icon"
-                />
-            <LinearLayout
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="12dp"
-                android:layout_marginTop="8dp"
-                android:orientation="vertical" >
+                android:theme="@style/AppTheme.AppBarOverlay">
 
-                <TextView
-                    android:id="@+id/connectionTypeHeader"
+                <androidx.appcompat.widget.Toolbar
+                    android:id="@+id/toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="?attr/actionBarSize"
+                    android:background="?attr/colorPrimary"
+                    app:popupTheme="@style/AppTheme.PopupOverlay" />
+
+            </com.google.android.material.appbar.AppBarLayout>
+
+            <TextView
+                android:id="@+id/urls_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:text="@string/urls_header"
+                android:textAlignment="center"
+                android:textColor="#4a4a4a"
+                android:textSize="18sp" />
+
+            <LinearLayout
+                android:id="@+id/urlLinerLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginRight="32dp"
+                android:layout_marginLeft="32dp"
+                android:layout_marginBottom="24dp"
+                android:background="@drawable/bg_item"
+                android:padding="12dp">
+
+                <ImageView
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:src="@drawable/wifi_icon"
+                    />
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Wi-Fi"
-                    android:textSize="18sp"
-                    android:textColor="#4a4a4a"/>
+                    android:layout_marginLeft="12dp"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" >
 
-                <TextView
-                    android:id="@+id/connectionURL"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="http://192.168.2.102:8080"
-                    android:textSize="16sp"
-                    android:textColor="#5BA4ED"/>
+                    <TextView
+                        android:id="@+id/connectionTypeHeader"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Wi-Fi"
+                        android:textSize="18sp"
+                        android:textColor="#4a4a4a"/>
+
+                    <TextView
+                        android:id="@+id/connectionURL"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="http://192.168.2.102:8080"
+                        android:textSize="16sp"
+                        android:textColor="#5BA4ED"/>
+                </LinearLayout>
             </LinearLayout>
+
+            <ToggleButton
+                android:id="@+id/remoteControlEnableSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="75dp"
+                android:layout_marginLeft="32dp"
+                android:layout_marginRight="32dp"
+                android:layout_marginBottom="20dp"
+                android:layout_marginTop="50dp"
+                android:background="@drawable/bg_button_off"
+                android:textOff="@string/button_remote_control_on"
+                android:textOn="@string/button_remote_control_off"
+                android:textColor="#4a4a4a"/>
+
+            <ToggleButton
+                android:id="@+id/startButton"
+                android:layout_width="match_parent"
+                android:layout_height="75dp"
+                android:layout_marginLeft="32dp"
+                android:layout_marginRight="32dp"
+                android:layout_marginBottom="30dp"
+                android:background="@drawable/bg_button_off"
+                android:textOff="@string/button_start"
+                android:textOn="@string/button_stop"
+                android:textColor="#4a4a4a" />
         </LinearLayout>
 
-        <ToggleButton
-            android:id="@+id/remoteControlEnableSwitch"
-            android:layout_width="match_parent"
-            android:layout_height="75dp"
-            android:layout_marginLeft="32dp"
-            android:layout_marginRight="32dp"
-            android:layout_marginBottom="20dp"
-            android:layout_marginTop="50dp"
-            android:background="@drawable/bg_button_off"
-            android:textOff="@string/button_remote_control_off"
-            android:textOn="@string/button_remote_control_on"
-            android:textColor="#4a4a4a"/>
-
-        <ToggleButton
-            android:id="@+id/startButton"
-            android:layout_width="match_parent"
-            android:layout_height="75dp"
-            android:layout_marginLeft="32dp"
-            android:layout_marginRight="32dp"
-            android:layout_marginBottom="30dp"
-            android:background="@drawable/bg_button_off"
-            android:textOff="@string/button_stop"
-            android:textOn="@string/button_start"
-            android:textColor="#4a4a4a" />
-
-        <LinearLayout
-            android:id="@+id/adRelativeLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-        </LinearLayout>
-    </LinearLayout>
-</ScrollView>
+    </ScrollView>
+    
+    <RelativeLayout
+        android:id="@+id/adLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+    </RelativeLayout>
+</LinearLayout>
 

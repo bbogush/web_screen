@@ -443,12 +443,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        LinearLayout adRelativeLayout = findViewById(R.id.adRelativeLayout);
+        RelativeLayout adLayout = findViewById(R.id.adLayout);
         adView = new AdView(this);
+        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(RelativeLayout.
+                LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+
         String adUnitId = getString(BuildConfig.DEBUG ? R.string.adaptive_banner_ad_unit_id_test :
                 R.string.adaptive_banner_ad_unit_id);
         adView.setAdUnitId(adUnitId);
-        adRelativeLayout.addView(adView);
+        adLayout.addView(adView, layoutParams);;
 
         AdSize adSize = getAdSize();
         adView.setAdSize(adSize);
