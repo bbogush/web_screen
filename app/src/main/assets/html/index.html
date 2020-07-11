@@ -120,7 +120,7 @@
         background: #112233;
     }
 
-    img {
+    .image_screen {
          max-width: 100%;
          max-height: 95%;
          display: block;
@@ -185,28 +185,44 @@
         background-color: #000000;
         outline: none;
     }
+
+    .button_image {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
 </style>
 
 <body>
     <div class="image_div">
-        <img id="screen" src="/mjpeg">
+        <img class="image_screen" id="screen" src="/mjpeg">
         <table>
             <tbody>
                 <tr>
                     <td>
-                        <button type="button" onclick="backButtonHandler()">Back</button>
+                        <button type="button" title="Back" onclick="backButtonHandler()">
+                            <img class="button_image" src="back.svg">
+                        </button>
                     </td>
                     <td>
-                        <button type="button" onclick="homeButtonHandler()">Home</button>
+                        <button type="button" title="Home screen" onclick="homeButtonHandler()">
+                            <img class="button_image" src="home.svg">
+                        </button>
                     </td>
                     <td>
-                        <button type="button" onclick="recentButtonHandler()">Recent</button>
+                        <button type="button" title="Recent" onclick="recentButtonHandler()">
+                            <img class="button_image" src="recent.svg">
+                        </button>
                     </td>
                     <td>
-                        <button type="button" onclick="powerButtonHandler()">Power</button>
+                        <button type="button" title="Power menu" onclick="powerButtonHandler()">
+                            <img class="button_image" src="power.svg">
+                        </button>
                     </td>
                     <td>
-                        <button type="button" onclick="lockButtonHandler()">Lock screen</button>
+                        <button type="button" title="Lock/unlock screen" onclick="lockButtonHandler()">
+                            <img class="button_image" src="lock.svg">
+                        </button>
                     </td>
                 </tr>
             </tbody>

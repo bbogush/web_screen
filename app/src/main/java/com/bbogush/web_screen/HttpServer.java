@@ -16,7 +16,14 @@ import java.util.Map;
 import fi.iki.elonen.NanoHTTPD;
 
 public class HttpServer extends NanoHTTPD {
-    private static final String INDEX_HTML = "html/index.html";
+    private static final String HTML_DIR = "html/";
+    private static final String INDEX_HTML = "index.html";
+    private static final String IMAGE_BACK = "back.svg";
+    private static final String IMAGE_HOME = "home.svg";
+    private static final String IMAGE_RECENT = "recent.svg";
+    private static final String IMAGE_POWER = "power.svg";
+    private static final String IMAGE_LOCK = "lock.svg";
+    private static final String MIME_IMAGE_SVG = "image/svg+xml";
     private static final String MOUSE_PARAM = "mouse";
     private static final String MOUSE_PARAM_VALUE_DOWN = "down";
     private static final String MOUSE_PARAM_VALUE_MOVE = "move";
@@ -63,9 +70,16 @@ public class HttpServer extends NanoHTTPD {
         return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "Not Found");
     }
 
+    private Response internalErrorResponse() {
+        return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT,
+                "Internal error");
+    }
+
     private Response handleGet(IHTTPSession session, String uri) {
         if (uri.contentEquals("/")) {
             return handleRootRequest(session);
+        } else if (uri.contains(".svg")) {
+            return handleImageRequest(session, uri);
         } else if (uri.contentEquals("/mjpeg")) {
             return handleMjpegRequest(session);
         }
@@ -74,7 +88,7 @@ public class HttpServer extends NanoHTTPD {
     }
 
     private Response handleRootRequest(IHTTPSession session) {
-        String indexHtml = readFile(INDEX_HTML);
+        String indexHtml = readFile(HTML_DIR + INDEX_HTML);
         Map<String, List<String>> parameters = session.getParameters();
 
         if (parameters != null)
@@ -174,6 +188,32 @@ public class HttpServer extends NanoHTTPD {
         }
 
         return string;
+    }
+
+    private Response handleImageRequest(IHTTPSession session, String uri) {
+        String imageName;
+        if (uri.contentEquals("/" + IMAGE_BACK))
+            imageName = HTML_DIR + IMAGE_BACK;
+        else if (uri.contentEquals("/" + IMAGE_HOME))
+            imageName = HTML_DIR + IMAGE_HOME;
+        else if (uri.contentEquals("/" + IMAGE_RECENT))
+            imageName = HTML_DIR + IMAGE_RECENT;
+        else if (uri.contentEquals("/" + IMAGE_LOCK))
+            imageName = HTML_DIR + IMAGE_LOCK;
+        else if (uri.contentEquals("/" + IMAGE_POWER))
+            imageName = HTML_DIR + IMAGE_POWER;
+        else
+            return notFoundResponse();
+
+        InputStream fileStream;
+        try {
+            fileStream = context.getAssets().open(imageName);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return internalErrorResponse();
+        }
+
+        return newChunkedResponse(Response.Status.OK, MIME_IMAGE_SVG, fileStream);
     }
 
     private Response handleMjpegRequest(IHTTPSession session) {
