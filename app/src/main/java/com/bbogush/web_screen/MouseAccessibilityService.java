@@ -3,7 +3,9 @@ package com.bbogush.web_screen;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Path;
+import android.os.Build;
 import android.os.PowerManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -243,7 +245,11 @@ public class MouseAccessibilityService extends AccessibilityService {
     public void lockButtonClick() {
         Log.d(TAG, "Lock button pressed");
         if (!isScreenOff())
-            instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                instance.performGlobalAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN);
+            } else {
+                adminDoLock();
+            }
         else
             wakeScreenIfNecessary();
     }
@@ -265,5 +271,10 @@ public class MouseAccessibilityService extends AccessibilityService {
                                 PowerManager.ACQUIRE_CAUSES_WAKEUP, TAG);
         screenLock.acquire();
         screenLock.release();
+    }
+
+    private void adminDoLock() {
+        Intent intent = new Intent(instance, AdminActivity.class);
+        instance.startActivity(intent);
     }
 }
