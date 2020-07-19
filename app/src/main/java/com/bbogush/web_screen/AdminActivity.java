@@ -24,10 +24,12 @@ public class AdminActivity extends AppCompatActivity {
 
         deviceManger = (DevicePolicyManager)getSystemService(Context.DEVICE_POLICY_SERVICE);
         compName = new ComponentName(this, AdminReceiver.class);
-        if (deviceManger.isAdminActive(compName))
-            lockScreen();
-        else
+        if (deviceManger.isAdminActive(compName)) {
+            deviceManger.lockNow();
+            finish();
+        } else {
             askAdminPermission();
+        }
     }
 
     private void askAdminPermission() {
@@ -44,7 +46,8 @@ public class AdminActivity extends AppCompatActivity {
              case RESULT_ENABLE:
                  if (resultCode == Activity.RESULT_OK) {
                      Log.d(TAG, "Admin permission granted");
-                     lockScreen();
+                     deviceManger.lockNow();
+                     finish();
                  } else {
                      Log.i(TAG, "Admin permission denied");
                      finish();
@@ -52,10 +55,18 @@ public class AdminActivity extends AppCompatActivity {
                  return;
          }
          super.onActivityResult(requestCode, resultCode, data);
-     }
+    }
 
-     private void lockScreen() {
-        deviceManger.lockNow();
-        finish();
-     }
+    public static void lockScreen(Context context) {
+        DevicePolicyManager deviceManger =
+                 (DevicePolicyManager)context.getSystemService(Context.DEVICE_POLICY_SERVICE);
+         ComponentName compName = new ComponentName(context, AdminReceiver.class);
+         // Start activity only if need permission
+         if (deviceManger.isAdminActive(compName)) {
+             deviceManger.lockNow();
+         } else {
+             Intent intent = new Intent(context, AdminActivity.class);
+             context.startActivity(intent);
+         }
+    }
 }
