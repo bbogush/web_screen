@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WebScreen</string>
+    <string name="urls_header">Перейдите по следующей ссылке в браузере</string>
+    <string name="button_remote_control_off">Отключить дистанционное управление</string>
+    <string name="button_remote_control_on">Включить дистанционное управление</string>
+    <string name="button_start">Начать совместное использование экрана</string>
+    <string name="button_stop">Остановить совместное использование экрана</string>
+    <string name="no_active_connections">Нет Wi-Fi соединения</string>
+    <string name="action_settings">Настройки</string>
+    <string name="general_header">Общие</string>
+    <string name="port_title">Порт</string>
+    <string name="port_description">Порт сервера для входящих соединений. Допустимые значения: 1025-65535.\nПо умолчанию: 8080.</string>
+    <string name="adaptive_banner_ad_unit_id_test">ca-app-pub-3940256099942544/6300978111</string>
+    <string name="adaptive_banner_ad_unit_id">ca-app-pub-6312357173588580/8818719441</string>
+    <string name="ask_admin_permission">Предоставить разрешение администратора для блокировки экрана</string>
+</resources>

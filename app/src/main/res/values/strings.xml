@@ -1,16 +1,16 @@
 <resources>
     <string name="app_name">WebScreen</string>
-    <string name="urls_header">Visit following URL</string>
+    <string name="urls_header">Visit following link in browser</string>
     <string name="button_remote_control_on">Enable remote control</string>
     <string name="button_remote_control_off">Disable remote control</string>
-    <string name="button_start">Start screen share</string>
-    <string name="button_stop">Stop screen share</string>
-    <string name="no_active_connections">No active Wi-Fi connection</string>
+    <string name="button_start">Start screen sharing</string>
+    <string name="button_stop">Stop screen sharing</string>
+    <string name="no_active_connections">No Wi-Fi connection</string>
     <string name="action_settings">Settings</string>
     <string name="general_header">General</string>
     <string name="port_title">Port</string>
-    <string name="port_description">Server port for incoming connections.\nAllowed values: 1025-65535\nDefault: 8080</string>
+    <string name="port_description">Server port for incoming connections. Allowed values: 1025-65535.\nDefault: 8080.</string>
     <string name="adaptive_banner_ad_unit_id_test">ca-app-pub-3940256099942544/6300978111</string>
     <string name="adaptive_banner_ad_unit_id">ca-app-pub-6312357173588580/8818719441</string>
-    <string name="ask_admin_permission">Please provide admin permission for lock screen action</string>
+    <string name="ask_admin_permission">Provide admin permission for screen lock</string>
 </resources>
