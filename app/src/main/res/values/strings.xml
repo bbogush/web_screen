@@ -13,4 +13,5 @@
     <string name="adaptive_banner_ad_unit_id_test">ca-app-pub-3940256099942544/6300978111</string>
     <string name="adaptive_banner_ad_unit_id">ca-app-pub-6312357173588580/8818719441</string>
     <string name="ask_admin_permission">Provide admin permission for screen lock</string>
+    <string name="port_in_use">Error: the port %d is already in use.</string>
 </resources>

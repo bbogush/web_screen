@@ -133,17 +133,11 @@ public class AppService extends Service {
         return httpServer;
     }
 
-    public void startHttpServer() {
+    public void startHttpServer() throws IOException {
         if (httpServer == null)
             return;
 
-        try {
-            httpServer.start();
-        } catch(IOException ioe) {
-            Log.e(TAG, "The HTTP server could not start");
-            ioe.printStackTrace();
-            return;
-        }
+        httpServer.start();
     }
 
     public void stopHttpServer() {

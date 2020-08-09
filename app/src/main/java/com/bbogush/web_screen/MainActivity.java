@@ -30,6 +30,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.google.android.gms.ads.AdRequest;
@@ -39,8 +40,10 @@ import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.initialization.InitializationStatus;
 import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 
+import java.io.IOException;
 import java.net.Inet6Address;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -291,7 +294,14 @@ public class MainActivity extends AppCompatActivity {
         httpServer = new HttpServer(screenCapture, mouseAccessibilityService, httpServerPort,
                 getApplicationContext());
         appService.setHttpServer(httpServer);
-        appService.startHttpServer();
+        try {
+            appService.startHttpServer();
+        } catch (IOException e) {
+            String fmt = getResources().getString(R.string.port_in_use);
+            String errorMessage = String.format(Locale.getDefault(), fmt, httpServerPort);
+            Toast.makeText(getApplicationContext(),errorMessage, Toast.LENGTH_SHORT).show();
+            resetStartButton();
+        }
     }
 
     private void stopHttpServer() {
