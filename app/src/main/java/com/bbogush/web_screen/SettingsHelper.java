@@ -61,7 +61,7 @@ public class SettingsHelper {
         try {
             isEnabled = sharedPreferences.getBoolean(SETTINGS_NAME_REMOTE_CONTROL, false);
         } catch (Exception e) {
-            Log.d(TAG, "Failed to parse remote control settings");
+            Log.e(TAG, "Failed to parse remote control settings");
             isEnabled = false;
         }
 
