@@ -10,12 +10,19 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
-import fi.iki.elonen.NanoHTTPD;
+import fi.iki.elonen.NanoWSD;
 
-public class HttpServer extends NanoHTTPD {
+public class HttpServer extends NanoWSD {
+    private static final String TAG = HttpServer.class.getSimpleName();
+
     private static final String HTML_DIR = "html/";
     private static final String INDEX_HTML = "index.html";
     private static final String IMAGE_BACK = "back.svg";
@@ -24,20 +31,20 @@ public class HttpServer extends NanoHTTPD {
     private static final String IMAGE_POWER = "power.svg";
     private static final String IMAGE_LOCK = "lock.svg";
     private static final String MIME_IMAGE_SVG = "image/svg+xml";
-    private static final String MOUSE_PARAM = "mouse";
-    private static final String MOUSE_PARAM_VALUE_DOWN = "down";
-    private static final String MOUSE_PARAM_VALUE_MOVE = "move";
-    private static final String MOUSE_PARAM_VALUE_UP = "up";
-    private static final String MOUSE_PARAM_VALUE_ZOOM_IN = "zoomIn";
-    private static final String MOUSE_PARAM_VALUE_ZOOM_OUT = "zoomOut";
+    private static final String TYPE_PARAM = "type";
+    private static final String TYPE_VALUE_MOUSE_UP = "mouse_up";
+    private static final String TYPE_VALUE_MOUSE_MOVE = "mouse_move";
+    private static final String TYPE_VALUE_MOUSE_DOWN = "mouse_down";
+    private static final String TYPE_VALUE_MOUSE_ZOOM_IN = "mouse_zoom_in";
+    private static final String TYPE_VALUE_MOUSE_ZOOM_OUT = "mouse_zoom_out";
+    private static final String TYPE_VALUE_BUTTON_BACK = "button_back";
+    private static final String TYPE_VALUE_BUTTON_HOME = "button_home";
+    private static final String TYPE_VALUE_BUTTON_RECENT = "button_recent";
+    private static final String TYPE_VALUE_BUTTON_POWER = "button_power";
+    private static final String TYPE_VALUE_BUTTON_LOCK = "button_lock";
     private static final String MOUSE_PARAM_X = "x";
     private static final String MOUSE_PARAM_Y = "y";
-    private static final String BUTTON_PARAM = "button";
-    private static final String BUTTON_PARAM_VALUE_BACK = "back";
-    private static final String BUTTON_PARAM_VALUE_HOME = "home";
-    private static final String BUTTON_PARAM_VALUE_RECENT = "recent";
-    private static final String BUTTON_PARAM_VALUE_POWER = "power";
-    private static final String BUTTON_PARAM_VALUE_LOCK = "lock";
+
 
     private MouseAccessibilityService mouseAccessibilityService;
     private ScreenCapture capture;
@@ -51,8 +58,67 @@ public class HttpServer extends NanoHTTPD {
         this.mouseAccessibilityService = mouseAccessibilityService;
     }
 
+    class Ws extends WebSocket {
+        private static final int PING_INTERVAL = 20000;
+        private Timer pingTimer = new Timer();
+
+        public Ws(IHTTPSession handshakeRequest) {
+            super(handshakeRequest);
+        }
+
+        @Override
+        protected void onOpen() {
+            TimerTask timerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        Ws.this.ping(new byte[0]);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+
+            pingTimer.scheduleAtFixedRate(timerTask, PING_INTERVAL, PING_INTERVAL);
+        }
+
+        @Override
+        protected void onClose(WebSocketFrame.CloseCode code, String reason,
+                               boolean initiatedByRemote) {
+            pingTimer.cancel();
+        }
+
+        @Override
+        protected void onMessage(WebSocketFrame message) {
+            HashMap<String, String> params = new HashMap<>();
+            String dataString = message.getTextPayload();
+            List<String> keyValueList = new ArrayList<>(Arrays.asList(dataString.split(",")));
+            for (String keyValue : keyValueList) {
+                String[] parts = keyValue.split("=", 2);
+                if (parts.length == 2)
+                    params.put(parts[0], parts[1]);
+            }
+
+            handleParameters(params);
+        }
+
+        @Override
+        protected void onPong(WebSocketFrame pong) {
+        }
+
+        @Override
+        protected void onException(IOException exception) {
+            exception.printStackTrace();
+        }
+    }
+
     @Override
-    public Response serve(IHTTPSession session) {
+    protected WebSocket openWebSocket(IHTTPSession handshake) {
+        return new Ws(handshake);
+    }
+
+    @Override
+    protected Response serveHttp(IHTTPSession session) {
         Method method = session.getMethod();
         String uri = session.getUri();
 
@@ -89,42 +155,48 @@ public class HttpServer extends NanoHTTPD {
 
     private Response handleRootRequest(IHTTPSession session) {
         String indexHtml = readFile(HTML_DIR + INDEX_HTML);
-        Map<String, List<String>> parameters = session.getParameters();
-
-        if (parameters != null)
-            handleParameters(parameters);
 
         return newFixedLengthResponse(Response.Status.OK, MIME_HTML, indexHtml);
     }
 
-    private void handleParameters(Map<String, List<String>> parameters) {
+    private void handleParameters(Map<String, String> parameters) {
 
         if (mouseAccessibilityService == null)
             return;
 
-        handleMouseParameters(parameters);
-        handleButtonParameters(parameters);
+        String type = parameters.get(TYPE_PARAM);
+        if (type == null)
+            return;
+
+        switch (type) {
+            case TYPE_VALUE_MOUSE_UP:
+            case TYPE_VALUE_MOUSE_MOVE:
+            case TYPE_VALUE_MOUSE_DOWN:
+            case TYPE_VALUE_MOUSE_ZOOM_IN:
+            case TYPE_VALUE_MOUSE_ZOOM_OUT:
+                handleMouseParameters(type, parameters);
+                break;
+            case TYPE_VALUE_BUTTON_BACK:
+                mouseAccessibilityService.backButtonClick();
+                break;
+            case TYPE_VALUE_BUTTON_HOME:
+                mouseAccessibilityService.homeButtonClick();
+                break;
+            case TYPE_VALUE_BUTTON_RECENT:
+                mouseAccessibilityService.recentButtonClick();
+                break;
+            case TYPE_VALUE_BUTTON_POWER:
+                mouseAccessibilityService.powerButtonClick();
+                break;
+            case TYPE_VALUE_BUTTON_LOCK:
+                mouseAccessibilityService.lockButtonClick();
+                break;
+        }
     }
 
-    private void handleMouseParameters(Map<String, List<String>> parameters) {
-        List<String> listAction = parameters.get(MOUSE_PARAM);
-        if (listAction == null || listAction.isEmpty())
-            return;
-
-        List<String> listX = parameters.get(MOUSE_PARAM_X);
-        if (listX == null || listX.isEmpty())
-            return;
-
-        List<String> listY = parameters.get(MOUSE_PARAM_Y);
-        if (listY == null || listY.isEmpty())
-            return;
-
-        String actionString = listAction.get(0);
-        String xString = listX.get(0);
-        String yString = listY.get(0);
-
-        if (actionString == null || actionString.isEmpty())
-            return;
+    private void handleMouseParameters(String type, Map<String, String> parameters) {
+        String xString = parameters.get(MOUSE_PARAM_X);
+        String yString = parameters.get(MOUSE_PARAM_Y);
         if (xString == null || xString.isEmpty())
             return;
         if (yString == null || yString.isEmpty())
@@ -138,37 +210,23 @@ public class HttpServer extends NanoHTTPD {
             return;
         }
 
-        if (actionString.contentEquals(MOUSE_PARAM_VALUE_DOWN))
-            mouseAccessibilityService.mouseDown(x, y);
-        else if (actionString.contentEquals(MOUSE_PARAM_VALUE_MOVE))
-            mouseAccessibilityService.mouseMove(x, y);
-        else if (actionString.contentEquals(MOUSE_PARAM_VALUE_UP))
-            mouseAccessibilityService.mouseUp(x, y);
-        else if (actionString.contentEquals(MOUSE_PARAM_VALUE_ZOOM_IN))
-            mouseAccessibilityService.mouseWheelZoomIn(x, y);
-        else if (actionString.contentEquals(MOUSE_PARAM_VALUE_ZOOM_OUT))
-            mouseAccessibilityService.mouseWheelZoomOut(x, y);
-    }
-
-    private void handleButtonParameters(Map<String, List<String>> parameters) {
-        List<String> listButton = parameters.get(BUTTON_PARAM);
-        if (listButton == null || listButton.isEmpty())
-            return;
-
-        String button = listButton.get(0);
-        if (button == null)
-            return;
-
-        if (button.contentEquals(BUTTON_PARAM_VALUE_BACK))
-            mouseAccessibilityService.backButtonClick();
-        else if (button.contentEquals(BUTTON_PARAM_VALUE_HOME))
-            mouseAccessibilityService.homeButtonClick();
-        else if (button.contentEquals(BUTTON_PARAM_VALUE_RECENT))
-            mouseAccessibilityService.recentButtonClick();
-        else if (button.contentEquals(BUTTON_PARAM_VALUE_POWER))
-            mouseAccessibilityService.powerButtonClick();
-        else if (button.contentEquals(BUTTON_PARAM_VALUE_LOCK))
-            mouseAccessibilityService.lockButtonClick();
+        switch (type) {
+            case TYPE_VALUE_MOUSE_UP:
+                mouseAccessibilityService.mouseUp(x, y);
+                break;
+            case TYPE_VALUE_MOUSE_MOVE:
+                mouseAccessibilityService.mouseMove(x, y);
+                break;
+            case TYPE_VALUE_MOUSE_DOWN:
+                mouseAccessibilityService.mouseDown(x, y);
+                break;
+            case TYPE_VALUE_MOUSE_ZOOM_IN:
+                mouseAccessibilityService.mouseWheelZoomIn(x, y);
+                break;
+            case TYPE_VALUE_MOUSE_ZOOM_OUT:
+                mouseAccessibilityService.mouseWheelZoomOut(x, y);
+                break;
+        }
     }
 
     private String readFile(String fileName) {

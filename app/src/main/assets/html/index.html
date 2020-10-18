@@ -2,15 +2,34 @@
 <html>
 <script type='text/javascript'>
     var mouseDown = false;
+    var dataWebSocket;
 
     window.onload = init;
 
     function init() {
+        webSocketInit();
         document.getElementById('screen').ondragstart = function() { return false; };
         document.getElementById('screen').addEventListener('mousedown', mouseDownHandler);
         document.getElementById('screen').addEventListener('mousemove', mouseMoveHandler);
         document.getElementById('screen').addEventListener('mouseup', mouseUpHandler);
         document.getElementById('screen').addEventListener('wheel', mouseWheelHandler);
+    }
+
+    function webSocketInit() {
+        dataWebSocket = new WebSocket('ws://' + window.location.host);
+
+        dataWebSocket.onopen = function(e) {
+        };
+
+        dataWebSocket.onmessage = function(event) {
+        };
+
+        dataWebSocket.onclose = function(event) {
+        };
+
+        dataWebSocket.onerror = function(error) {
+            console.log("WebSocket error: " + error.message);
+        };
     }
 
     function isMouseLeftButtonPressed(e) {
@@ -33,10 +52,8 @@
 
     function mouseHandler(e, action) {
         var position = getPosition(e);
-        var params = 'mouse=' + action + '&x=' + position.x + '&y=' + position.y;
-        var http = new XMLHttpRequest();
-        http.open('GET', window.location.href + '?' + params, true);
-        http.send(null);
+        var params = 'type=mouse_' + action + ',x=' + position.x + ',y=' + position.y;
+        dataWebSocket.send(params);
     }
 
     function mouseDownHandler(e) {
@@ -70,16 +87,14 @@
         if (!e.ctrlKey)
             return;
         if (e.deltaY > 0)
-            mouseHandler(e, 'zoomOut');
+            mouseHandler(e, 'zoom_out');
         else if (e.deltaY < 0)
-            mouseHandler(e, 'zoomIn');
+            mouseHandler(e, 'zoom_in');
         e.preventDefault();
     }
 
     function buttonHandler(button) {
-        var http = new XMLHttpRequest();
-        http.open('GET', window.location.href + '?' + "button=" + button, true);
-        http.send(null);
+        dataWebSocket.send("type=button_" + button);
     }
 
     function backButtonHandler() {
