@@ -40,6 +40,9 @@ import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.initialization.InitializationStatus;
 import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 
+import org.webrtc.ScreenCapturerAndroid;
+import org.webrtc.VideoCapturer;
+
 import java.io.IOException;
 import java.net.Inet6Address;
 import java.util.List;
@@ -187,6 +190,22 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onForegroundServicePermissionGranted(boolean isGranted) {
             if (isGranted)
+                permissionHelper.requestRecordAudioPermission();
+            else
+                resetStartButton();
+        }
+
+        @Override
+        public void onRecordAudioPermissionGranted(boolean isGranted) {
+            if (isGranted)
+                permissionHelper.requestCameraPermission();
+            else
+                resetStartButton();
+        }
+
+        @Override
+        public void onCameraPermissionGranted(boolean isGranted) {
+            if (isGranted)
                 startService();
             else
                 resetStartButton();
@@ -266,6 +285,8 @@ public class MainActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
                     startMediaProjection(data);
                     startHttpServer();
+                    //getIceServers();
+                    initSignaling();
                 }
                 else {
                     resetStartButton();
@@ -282,17 +303,27 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    private Intent permissionIntent;
+    VideoCapturer videoCapturerAndroid;
     private void startMediaProjection(Intent data) {
-        MediaProjection mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK,
-                data);
-        screenCapture = new ScreenCapture(mediaProjection, getApplicationContext());
-        appService.setScreenCapture(screenCapture);
-        appService.startScreenCapture();
+//        MediaProjection mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK,
+//                data);
+        //screenCapture = new ScreenCapture(mediaProjection, getApplicationContext());
+        ///appService.setScreenCapture(screenCapture);
+        //appService.startScreenCapture();
+        videoCapturerAndroid = new ScreenCapturerAndroid(data,
+                new MediaProjection.Callback() {
+                    @Override
+                    public void onStop() {
+                        super.onStop();
+                        Log.e(TAG, "user has revoked permissions");
+                    }
+                });
     }
 
     private void startHttpServer() {
         httpServer = new HttpServer(screenCapture, mouseAccessibilityService, httpServerPort,
-                getApplicationContext());
+                getApplicationContext(), videoCapturerAndroid);
         appService.setHttpServer(httpServer);
         try {
             appService.startHttpServer();
@@ -302,6 +333,14 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(),errorMessage, Toast.LENGTH_SHORT).show();
             resetStartButton();
         }
+    }
+
+    private void getIceServers() {
+        appService.getIceServers();
+    }
+
+    private void initSignaling() {
+        appService.initSignaling();
     }
 
     private void stopHttpServer() {

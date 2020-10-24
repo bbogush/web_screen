@@ -18,6 +18,8 @@ public class PermissionHelper {
         void onReadExternalStoragePermissionGranted(boolean isGranted);
         void onWakeLockPermissionGranted(boolean isGranted);
         void onForegroundServicePermissionGranted(boolean isGranted);
+        void onRecordAudioPermissionGranted(boolean isGranted);
+        void onCameraPermissionGranted(boolean isGranted);
     }
 
     private static final int PERM_ACCESS_NETWORK_STATE = 0;
@@ -25,6 +27,8 @@ public class PermissionHelper {
     private static final int PERM_READ_EXTERNAL_STORAGE = 2;
     private static final int PERM_WAKE_LOCK = 3;
     private static final int PERM_FOREGROUND_SERVICE = 4;
+    private static final int PERM_RECORD_AUDIO = 5;
+    private static final int PERM_CAMERA = 5;
 
     private Activity activity;
     private OnPermissionGrantedListener onPermissionGrantedListener;
@@ -104,6 +108,40 @@ public class PermissionHelper {
         }
     }
 
+    public void requestRecordAudioPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            if (ContextCompat.checkSelfPermission(activity.getApplicationContext(),
+                    Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "Audio permission granted");
+                onPermissionGrantedListener.onRecordAudioPermissionGranted(true);
+                return;
+            }
+
+            ActivityCompat.requestPermissions(activity,
+                    new String[]{ Manifest.permission.RECORD_AUDIO },
+                    PERM_RECORD_AUDIO);
+        } else {
+            onPermissionGrantedListener.onRecordAudioPermissionGranted(true);
+        }
+    }
+
+    public void requestCameraPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            if (ContextCompat.checkSelfPermission(activity.getApplicationContext(),
+                    Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "Camera permission granted");
+                onPermissionGrantedListener.onCameraPermissionGranted(true);
+                return;
+            }
+
+            ActivityCompat.requestPermissions(activity,
+                    new String[]{ Manifest.permission.CAMERA },
+                    PERM_CAMERA);
+        } else {
+            onPermissionGrantedListener.onCameraPermissionGranted(true);
+        }
+    }
+
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         switch (requestCode) {
@@ -155,6 +193,16 @@ public class PermissionHelper {
                 } else {
                     Log.d(TAG, "Foreground service permission denied");
                     onPermissionGrantedListener.onForegroundServicePermissionGranted(false);
+                }
+                break;
+            case PERM_RECORD_AUDIO:
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "Record audio permission granted");
+                    onPermissionGrantedListener.onRecordAudioPermissionGranted(true);
+                } else {
+                    Log.d(TAG, "Record audio permission denied");
+                    onPermissionGrantedListener.onRecordAudioPermissionGranted(false);
                 }
                 break;
         }

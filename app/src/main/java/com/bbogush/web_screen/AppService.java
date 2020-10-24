@@ -11,13 +11,27 @@ import android.content.pm.ServiceInfo;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Base64;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 
+import org.json.JSONObject;
+import org.webrtc.PeerConnection;
+
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
+
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class AppService extends Service {
     private static final String TAG = AppService.class.getSimpleName();
@@ -36,6 +50,8 @@ public class AppService extends Service {
 
     private ScreenCapture screenCapture = null;
     private HttpServer httpServer = null;
+    private List<IceServer> iceServers = null;
+    List<PeerConnection.IceServer> peerIceServers = new ArrayList<>();
 
     @Override
     public void onCreate() {
@@ -47,6 +63,7 @@ public class AppService extends Service {
     public void onDestroy() {
         stopHttpServer();
         stopScreenCapture();
+        SignallingClient.getInstance().close();
         isRunning = false;
         Log.d(TAG, "Service destroyed");
     }
@@ -144,5 +161,109 @@ public class AppService extends Service {
         if (httpServer == null)
             return;
         httpServer.stop();
+    }
+
+    public void getIceServers() {
+        final String API_ENDPOINT = "https://global.xirsys.net";
+
+        Log.d(TAG, "getIceServers");
+
+        byte[] data = new byte[0];
+        try {
+            data = ("<xirsys_ident>:<xirsys_secret>").getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return;
+        }
+        Log.d(TAG, "getIceServers2");
+
+        String authToken = "Basic " + Base64.encodeToString(data, Base64.NO_WRAP);
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(API_ENDPOINT)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        Log.d(TAG, "getIceServers3");
+        TurnServer turnServer = retrofit.create(TurnServer.class);
+        Log.d(TAG, "getIceServers4");
+        turnServer.getIceCandidates(authToken).enqueue(new Callback<TurnServerPojo>() {
+            @Override
+            public void onResponse(@NonNull Call<TurnServerPojo> call,
+                                   @NonNull Response<TurnServerPojo> response) {
+                Log.d(TAG, "getIceServers Response");
+                TurnServerPojo body = response.body();
+                if (body != null)
+                    iceServers = body.iceServerList.iceServers;
+
+                Log.d(TAG, "getIceServers iceServers=" + iceServers);
+
+                for (IceServer iceServer : iceServers) {
+                    if (iceServer.credential == null) {
+                        PeerConnection.IceServer peerIceServer = PeerConnection.IceServer
+                                .builder(iceServer.url).createIceServer();
+                        peerIceServers.add(peerIceServer);
+                    } else {
+                        PeerConnection.IceServer peerIceServer = PeerConnection.IceServer
+                                .builder(iceServer.url)
+                                .setUsername(iceServer.username)
+                                .setPassword(iceServer.credential)
+                                .createIceServer();
+                        peerIceServers.add(peerIceServer);
+                    }
+                }
+                Log.d(TAG, "IceServers:\n" + iceServers.toString());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<TurnServerPojo> call, @NonNull Throwable t) {
+                t.printStackTrace();
+            }
+        });
+    }
+
+    public void initSignaling() {
+        SignallingClient.getInstance().init(new Signaling());
+    }
+
+    private class Signaling implements SignallingClient.SignalingInterface {
+
+        @Override
+        public void onRemoteHangUp(String msg) {
+
+        }
+
+        @Override
+        public void onOfferReceived(JSONObject data) {
+
+        }
+
+        @Override
+        public void onAnswerReceived(JSONObject data) {
+
+        }
+
+        @Override
+        public void onIceCandidateReceived(JSONObject data) {
+
+        }
+
+        @Override
+        public void onTryToStart() {
+
+        }
+
+        @Override
+        public void onCreatedRoom() {
+
+        }
+
+        @Override
+        public void onJoinedRoom() {
+
+        }
+
+        @Override
+        public void onNewPeerJoined() {
+
+        }
     }
 }

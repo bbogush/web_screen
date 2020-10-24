@@ -1,247 +1,52 @@
 <!DOCTYPE html>
 <html>
-<script type='text/javascript'>
-    var mouseDown = false;
-    var dataWebSocket;
 
-    window.onload = init;
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
-    function init() {
-        webSocketInit();
-        document.getElementById('screen').ondragstart = function() { return false; };
-        document.getElementById('screen').addEventListener('mousedown', mouseDownHandler);
-        document.getElementById('screen').addEventListener('mousemove', mouseMoveHandler);
-        document.getElementById('screen').addEventListener('mouseup', mouseUpHandler);
-        document.getElementById('screen').addEventListener('wheel', mouseWheelHandler);
-    }
+    <link rel="stylesheet" href="css/main.css" />
+</head>
 
-    function webSocketInit() {
-        dataWebSocket = new WebSocket('ws://' + window.location.host);
-
-        dataWebSocket.onopen = function(e) {
-        };
-
-        dataWebSocket.onmessage = function(event) {
-        };
-
-        dataWebSocket.onclose = function(event) {
-        };
-
-        dataWebSocket.onerror = function(error) {
-            console.log("WebSocket error: " + error.message);
-        };
-    }
-
-    function isMouseLeftButtonPressed(e) {
-        var MOUSE_LEFT_BUTTON_NUMBER = 1;
-
-        return e.buttons === undefined ? e.which === MOUSE_LEFT_BUTTON_NUMBER :
-            e.buttons === MOUSE_LEFT_BUTTON_NUMBER;
-    }
-
-    function getPosition(e) {
-        var rect = e.target.getBoundingClientRect();
-        var x = e.clientX - rect.left;
-        var y = e.clientY - rect.top;
-
-        x = Math.round(x * e.target.naturalWidth * 1.0 / e.target.width);
-        y = Math.round(y * e.target.naturalHeight * 1.0 / e.target.height);
-
-        return {x, y};
-    }
-
-    function mouseHandler(e, action) {
-        var position = getPosition(e);
-        var params = 'type=mouse_' + action + ',x=' + position.x + ',y=' + position.y;
-        dataWebSocket.send(params);
-    }
-
-    function mouseDownHandler(e) {
-        if (!isMouseLeftButtonPressed(e))
-            return;
-        mouseDown = true;
-        mouseHandler(e, 'down');
-    }
-
-    function mouseMoveHandler(e) {
-        if (!mouseDown)
-            return;
-        if (!isMouseLeftButtonPressed(e)) {
-            mouseDown = false;
-            mouseHandler(e, 'up');
-            return;
-        }
-        mouseHandler(e, 'move');
-    }
-
-    function mouseUpHandler(e) {
-        if (!mouseDown)
-            return;
-        if (isMouseLeftButtonPressed(e))
-            return;
-        mouseDown = false;
-        mouseHandler(e, 'up');
-    }
-
-    function mouseWheelHandler(e) {
-        if (!e.ctrlKey)
-            return;
-        if (e.deltaY > 0)
-            mouseHandler(e, 'zoom_out');
-        else if (e.deltaY < 0)
-            mouseHandler(e, 'zoom_in');
-        e.preventDefault();
-    }
-
-    function buttonHandler(button) {
-        dataWebSocket.send("type=button_" + button);
-    }
-
-    function backButtonHandler() {
-        buttonHandler("back");
-    }
-
-    function homeButtonHandler() {
-        buttonHandler("home");
-    }
-
-    function recentButtonHandler() {
-        buttonHandler("recent");
-    }
-
-    function powerButtonHandler() {
-        buttonHandler("power");
-    }
-
-    function lockButtonHandler() {
-        buttonHandler("lock");
-    }
-
-</script>
-
-<style>
-    body, html {
-        width: 100%;
-        height: 100%;
-        margin: 0px;
-        border: 0px;
-        overflow: hidden;
-        font-family: sans-serif;
-        display: block;
-        text-align: center;
-    }
-
-    body {
-        background: #112233;
-    }
-
-    .image_screen {
-         max-width: 100%;
-         max-height: 95%;
-         display: block;
-         padding: 0px;
-         border: 0px;
-         margin-left: auto;
-         margin-right: auto;
-    }
-
-    .image_div {
-        height: 100%;
-        display: block;
-        text-align: center;
-        padding: 0px;
-        margin: 0px;
-        border: 0px;
-    }
-
-    table {
-        display: inline-block;
-        table-layout: fixed;
-        width: 100%;
-        height: 5%;
-        overflow: hidden;
-        white-space: nowrap;
-        overflow-wrap: break-word;
-        padding: 0px;
-        margin: 0px;
-        border: 0px;
-    }
-
-    tbody {
-        display: inline-block;
-        width: 100%;
-        height: 100%;
-    }
-
-    tr {
-        display: inline-block;
-        width: 100%;
-        height: 100%;
-        background-color: #000000;
-    }
-
-    td {
-        display: inline-block;
-        width: 20%;
-        height: 100%;
-        overflow: hidden;
-        white-space: nowrap;
-        overflow-wrap: break-word;
-    }
-
-    button {
-        display: block;
-        width: 100%;
-        height: 100%;
-        border: 0px;
-        margin: 0px;
-        padding: 0px;
-        color: #DDDDDD;
-        background-color: #000000;
-        outline: none;
-    }
-
-    .button_image {
-        display: block;
-        width: 100%;
-        height: 100%;
-    }
-</style>
 
 <body>
-    <div class="image_div">
-        <img class="image_screen" id="screen" src="/mjpeg">
-        <table>
-            <tbody>
-                <tr>
-                    <td>
-                        <button type="button" title="Power menu" onclick="powerButtonHandler()">
-                            <img class="button_image" src="power.svg">
-                        </button>
-                    </td>
-                    <td>
-                        <button type="button" title="Recent" onclick="recentButtonHandler()">
-                            <img class="button_image" src="recent.svg">
-                        </button>
-                    </td>
-                    <td>
-                        <button type="button" title="Home screen" onclick="homeButtonHandler()">
-                            <img class="button_image" src="home.svg">
-                        </button>
-                    </td>
-                    <td>
-                        <button type="button" title="Back" onclick="backButtonHandler()">
-                            <img class="button_image" src="back.svg">
-                        </button>
-                    </td>
-                    <td>
-                        <button type="button" title="Lock/unlock screen" onclick="lockButtonHandler()">
-                            <img class="button_image" src="lock.svg">
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-     </div>
+<div class="image_div">
+    <video id="screen" class="image_screen" autoplay playsinline></video>
+    <table>
+        <tbody>
+        <tr>
+            <td>
+                <button type="button" title="Power menu" onclick="powerButtonHandler()">
+                    <img class="button_image" src="img/power.svg">
+                </button>
+            </td>
+            <td>
+                <button type="button" title="Recent" onclick="recentButtonHandler()">
+                    <img class="button_image" src="img/recent.svg">
+                </button>
+            </td>
+            <td>
+                <button type="button" title="Home screen" onclick="homeButtonHandler()">
+                    <img class="button_image" src="img/home.svg">
+                </button>
+            </td>
+            <td>
+                <button type="button" title="Back" onclick="backButtonHandler()">
+                    <img class="button_image" src="img/back.svg">
+                </button>
+            </td>
+            <td>
+                <button type="button" title="Lock/unlock screen" onclick="lockButtonHandler()">
+                    <img class="button_image" src="img/lock.svg">
+                </button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script src="js/adapter-latest.js"></script>
+<script src="js/mouse.js"></script>
+<script src="js/main.js"></script>
+
 </body>
 </html>
