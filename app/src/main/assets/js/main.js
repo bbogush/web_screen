@@ -7,6 +7,8 @@ var localStream;
 var pc;
 var remoteStream;
 var turnReady;
+var dataWebSocket;
+var remoteVideo;
 
 var pcConfig = {
     'iceServers': [{
@@ -14,22 +16,67 @@ var pcConfig = {
     }]
 };
 
-var dataWebSocket = new WebSocket('ws://' + window.location.host);
+window.onload = init;
+window.onbeforeunload = uninit;
 
-dataWebSocket.onopen = function(e) {
-    console.log("WebSocket opened");
-    dataWebSocket.send('type=join');
-    isChannelReady = true;
-    mouseInit(dataWebSocket);
-};
+function init() {
+    webSocketInit();
 
-dataWebSocket.onclose = function(event) {
-    console.log('WebSocket closed');
-};
+    remoteVideo = document.querySelector('#screen');
 
-dataWebSocket.onerror = function(error) {
-    console.log("WebSocket error: " + error.message);
-};
+    if (location.hostname !== 'localhost') {
+        requestTurn(
+            'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
+        );
+    }
+}
+
+function uninit() {
+    //XXX sendMessage('bye');
+}
+
+function webSocketInit() {
+    dataWebSocket = new WebSocket('ws://' + window.location.host);
+
+    dataWebSocket.onopen = function(e) {
+        console.log("WebSocket opened");
+        dataWebSocket.send('type=join');
+        isChannelReady = true;
+        mouseInit(dataWebSocket);
+    };
+
+    dataWebSocket.onclose = function(event) {
+        console.log('WebSocket closed');
+    };
+
+    dataWebSocket.onerror = function(error) {
+        console.log("WebSocket error: " + error.message);
+    };
+
+    // This client receives a message
+    dataWebSocket.onmessage = function(event) {
+        console.log('Client received message:', event);
+        var message = JSON.parse(event.data);
+
+        if (message.type === 'offer') {
+            if (!isInitiator && !isStarted) {
+                maybeStart();
+            }
+            pc.setRemoteDescription(new RTCSessionDescription(message));
+            doAnswer();
+        } else if (message.type === 'answer' && isStarted) {
+            pc.setRemoteDescription(new RTCSessionDescription(message));
+        } else if (message.type === 'candidate' && isStarted) {
+            var candidate = new RTCIceCandidate({
+                sdpMLineIndex: message.label,
+                candidate: message.candidate
+            });
+            pc.addIceCandidate(candidate);
+        } else if (message === 'bye' && isStarted) {
+            handleRemoteHangup();
+        }
+    };
+}
 
 function sendMessage(message) {
     console.log('Client sending message: ', message);
@@ -40,38 +87,6 @@ function sendMessage(message) {
 function sendIceMessage(message) {
     console.log('Client sending message: ', message);
     dataWebSocket.send('type=ice&ice=' + JSON.stringify(message));
-}
-
-// This client receives a message
-dataWebSocket.onmessage = function(event) {
-    console.log('Client received message:', event);
-    var message = JSON.parse(event.data);
-
-    if (message.type === 'offer') {
-        if (!isInitiator && !isStarted) {
-            maybeStart();
-        }
-        pc.setRemoteDescription(new RTCSessionDescription(message));
-        doAnswer();
-    } else if (message.type === 'answer' && isStarted) {
-        pc.setRemoteDescription(new RTCSessionDescription(message));
-    } else if (message.type === 'candidate' && isStarted) {
-        var candidate = new RTCIceCandidate({
-            sdpMLineIndex: message.label,
-            candidate: message.candidate
-        });
-        pc.addIceCandidate(candidate);
-    } else if (message === 'bye' && isStarted) {
-        handleRemoteHangup();
-    }
-};
-
-var remoteVideo = document.querySelector('#screen');
-
-if (location.hostname !== 'localhost') {
-    requestTurn(
-        'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
-    );
 }
 
 function maybeStart() {
@@ -86,10 +101,6 @@ function maybeStart() {
         }
     }
 }
-
-window.onbeforeunload = function() {
-    //XXX sendMessage('bye');
-};
 
 function createPeerConnection() {
     try {
