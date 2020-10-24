@@ -187,7 +187,7 @@ class SignallingClient {
                     throws Exception
             {
                 Log.d(TAG, "WebSocket connected");
-                signalingWebSocket.sendText("Test");
+                //signalingWebSocket.sendText("Test");
             }
 
             @Override

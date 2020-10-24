@@ -147,16 +147,16 @@ public class HttpServer extends NanoWSD {
         protected void onMessage(WebSocketFrame message) {
             Log.d(TAG, "Message from client: " + message.getTextPayload());
 
-            HashMap<String, String> params = new HashMap<>();
-            String dataString = message.getTextPayload();
-            List<String> keyValueList = new ArrayList<>(Arrays.asList(dataString.split("&")));
-            for (String keyValue : keyValueList) {
-                String[] parts = keyValue.split("=", 2);
-                if (parts.length == 2)
-                    params.put(parts[0], parts[1]);
+            JSONObject json;
+
+            try {
+                json = new JSONObject(message.getTextPayload());
+            } catch (JSONException e) {
+                e.printStackTrace();
+                return;
             }
 
-            handleParameters(this, params);
+            handleRequest(this, json);
         }
 
         @Override
@@ -215,10 +215,14 @@ public class HttpServer extends NanoWSD {
         return newFixedLengthResponse(Response.Status.OK, MIME_HTML, indexHtml);
     }
 
-    private void handleParameters(Ws ws, Map<String, String> parameters) {
-        String type = parameters.get(TYPE_PARAM);
-        if (type == null)
+    private void handleRequest(Ws ws, JSONObject json) {
+        String type = null;
+        try {
+            type = json.getString(TYPE_PARAM);
+        } catch (JSONException e) {
+            e.printStackTrace();
             return;
+        }
 
         switch (type) {
             case TYPE_VALUE_MOUSE_UP:
@@ -228,7 +232,7 @@ public class HttpServer extends NanoWSD {
             case TYPE_VALUE_MOUSE_ZOOM_OUT:
                 if (mouseAccessibilityService == null)
                     return;
-                handleMouseParameters(type, parameters);
+                handleMouseRequest(type, json);
                 break;
             case TYPE_VALUE_BUTTON_BACK:
                 if (mouseAccessibilityService == null)
@@ -256,37 +260,25 @@ public class HttpServer extends NanoWSD {
                 mouseAccessibilityService.lockButtonClick();
                 break;
             case TYPE_VALUE_SDP:
-                String data = parameters.get(SDP_PARAM);
-                if (data == null)
-                    break;
-                onAnswerReceived(data);
-                //onOffer(ws, data);
+                onAnswerReceived(json);
                 break;
             case TYPE_VALUE_JOIN:
                 onTryToStart(ws);
                 break;
             case TYPE_VALUE_ICE:
-                String iceData = parameters.get(ICE_PARAM);
-                if (iceData == null)
-                    break;
-                onIceCandidateReceived(iceData);
+                onIceCandidateReceived(json);
                 break;
         }
     }
 
-    private void handleMouseParameters(String type, Map<String, String> parameters) {
-        String xString = parameters.get(MOUSE_PARAM_X);
-        String yString = parameters.get(MOUSE_PARAM_Y);
-        if (xString == null || xString.isEmpty())
-            return;
-        if (yString == null || yString.isEmpty())
-            return;
-
+    private void handleMouseRequest(String type, JSONObject json) {
         int x, y;
+
         try {
-            x = Integer.parseInt(xString);
-            y = Integer.parseInt(yString);
-        } catch (Exception e) {
+            x = json.getInt(MOUSE_PARAM_X);
+            y = json.getInt(MOUSE_PARAM_Y);
+        } catch (JSONException e) {
+            e.printStackTrace();
             return;
         }
 
@@ -473,29 +465,26 @@ public class HttpServer extends NanoWSD {
 
     public void onIceCandidateReceived(IceCandidate iceCandidate) {
         Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-        try {
-            JSONObject object = new JSONObject();
-            object.put("type", "candidate");
-            object.put("label", iceCandidate.sdpMLineIndex);
-            object.put("id", iceCandidate.sdpMid);
-            object.put("candidate", iceCandidate.sdp);
 
-            webSocket.send(object.toString());
+        JSONObject messageJson = new JSONObject();
+        JSONObject iceJson = new JSONObject();
+        try {
+            iceJson.put("type", "candidate");
+            iceJson.put("label", iceCandidate.sdpMLineIndex);
+            iceJson.put("id", iceCandidate.sdpMid);
+            iceJson.put("candidate", iceCandidate.sdp);
+
+            messageJson.put("type", "ice");
+            messageJson.put("ice", iceJson);
+
+            String messageJsonStr = messageJson.toString();
+            //XXX broadcast
+            webSocket.send(messageJson.toString());
+            Log.d(TAG, "Send: " + messageJsonStr);
         } catch (Exception e) {
             e.printStackTrace();
+            return;
         }
-//        JSONObject obj = new JSONObject();
-//        try {
-//            obj.put("type", iceCandidate.);
-//            obj.put("sdp", iceCandidate.description);
-//        } catch (JSONException e) {
-//            e.printStackTrace();
-//            return;
-//        }
-//        String jsonStr = obj.toString();
-//        webSocket.send(jsonStr);
-        //we have received ice candidate. We can set it to the other peer.
-        //XXX SignallingClient.getInstance().emitIceCandidate(iceCandidate);
     }
 
     private void gotRemoteStream(MediaStream stream) {
@@ -533,23 +522,27 @@ public class HttpServer extends NanoWSD {
                 localPeer.setLocalDescription(new CustomSdpObserver("localSetLocalDesc"), sessionDescription);
                 Log.d("onCreateSuccess", "SignallingClient emit ");
 
-                JSONObject obj = new JSONObject();
+                JSONObject messageJson = new JSONObject();
+                JSONObject sdpJson = new JSONObject();
                 try {
-                    obj.put("type", sessionDescription.type.canonicalForm());
-                    obj.put("sdp", sessionDescription.description);
+                    sdpJson.put("type", sessionDescription.type.canonicalForm());
+                    sdpJson.put("sdp", sessionDescription.description);
+
+                    messageJson.put("type", "sdp");
+                    messageJson.put("sdp", sdpJson);
                 } catch (JSONException e) {
                     e.printStackTrace();
                     return;
                 }
-                String jsonStr = obj.toString();
 
+                String messageJsonStr = messageJson.toString();
                 try {
-                    ws.send(jsonStr);
+                    ws.send(messageJsonStr);
                 } catch (IOException e) {
                     e.printStackTrace();
                     return;
                 }
-                Log.d(TAG, jsonStr);
+                Log.d(TAG, messageJsonStr);
             }
         }, sdpConstraints);
     }
@@ -571,13 +564,12 @@ public class HttpServer extends NanoWSD {
         doAnswer(ws);
     }
 
-    public void onAnswerReceived(String data) {
+    public void onAnswerReceived(JSONObject data) {
         Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-        //showToast("Received Answer");
 
         JSONObject json;
         try {
-            json = new JSONObject(data);
+            json = data.getJSONObject(SDP_PARAM);
         } catch (JSONException e) {
             e.printStackTrace();
             return;
@@ -622,12 +614,12 @@ public class HttpServer extends NanoWSD {
         }, new MediaConstraints());
     }
 
-    public void onIceCandidateReceived(String data) {
+    public void onIceCandidateReceived(JSONObject data) {
         Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
 
         JSONObject json;
         try {
-            json = new JSONObject(data);
+            json = data.getJSONObject(ICE_PARAM);
         } catch (JSONException e) {
             e.printStackTrace();
             return;

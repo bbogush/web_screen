@@ -57,7 +57,7 @@ function isMouseLeftButtonPressed(e) {
 
 function mouseHandler(e, action) {
     var position = getPosition(e);
-    var params = 'type=mouse_' + action + '&x=' + position.x + '&y=' + position.y;
+    var params = '{type=mouse_' + action + ',x=' + position.x + ',y=' + position.y + '}';
     mouseWebSocket.send(params);
 }
 
@@ -73,27 +73,27 @@ function getPosition(e) {
 }
 
 function backButtonHandler() {
-    buttonHandler("back");
+    buttonHandler('back');
 }
 
 function homeButtonHandler() {
-    buttonHandler("home");
+    buttonHandler('home');
 }
 
 function recentButtonHandler() {
-    buttonHandler("recent");
+    buttonHandler('recent');
 }
 
 function powerButtonHandler() {
-    buttonHandler("power");
+    buttonHandler('power');
 }
 
 function lockButtonHandler() {
-    buttonHandler("lock");
+    buttonHandler('lock');
 }
 
 function buttonHandler(button) {
-    mouseWebSocket.send("type=button_" + button);
+    mouseWebSocket.send('{type=button_' + button + '}');
 }
 
 

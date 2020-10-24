@@ -32,61 +32,76 @@ function init() {
 }
 
 function uninit() {
-    //XXX sendMessage('bye');
+    dataWebSocket.send('{type:bye}');
 }
 
 function webSocketInit() {
     dataWebSocket = new WebSocket('ws://' + window.location.host);
+    dataWebSocket.onopen = onWsOpen;
+    dataWebSocket.onclose = onWsClose;
+    dataWebSocket.onerror = onWsError;
+    dataWebSocket.onmessage = onWsMessage;
+}
 
-    dataWebSocket.onopen = function(e) {
-        console.log("WebSocket opened");
-        dataWebSocket.send('type=join');
-        isChannelReady = true;
-        mouseInit(dataWebSocket);
-    };
+function onWsOpen(event) {
+    console.log("WebSocket opened");
 
-    dataWebSocket.onclose = function(event) {
-        console.log('WebSocket closed');
-    };
+    dataWebSocket.send('{type:join}');
+    isChannelReady = true;
 
-    dataWebSocket.onerror = function(error) {
-        console.log("WebSocket error: " + error.message);
-    };
+    mouseInit(dataWebSocket);
+}
 
-    // This client receives a message
-    dataWebSocket.onmessage = function(event) {
-        console.log('Client received message:', event);
-        var message = JSON.parse(event.data);
+function onWsClose(event) {
+    console.log('WebSocket closed');
+}
 
-        if (message.type === 'offer') {
-            if (!isInitiator && !isStarted) {
-                maybeStart();
-            }
-            pc.setRemoteDescription(new RTCSessionDescription(message));
-            doAnswer();
-        } else if (message.type === 'answer' && isStarted) {
-            pc.setRemoteDescription(new RTCSessionDescription(message));
-        } else if (message.type === 'candidate' && isStarted) {
-            var candidate = new RTCIceCandidate({
-                sdpMLineIndex: message.label,
-                candidate: message.candidate
-            });
-            pc.addIceCandidate(candidate);
-        } else if (message === 'bye' && isStarted) {
-            handleRemoteHangup();
+function onWsError(error) {
+    console.log("WebSocket error: " + error.message);
+}
+
+function onWsMessage(event) {
+    console.log('Received message:', event);
+    var message = JSON.parse(event.data);
+
+    if (message.type === 'sdp')
+        handleSdpMessage(message);
+    else if (message.type === 'ice')
+        handleIceMessage(message);
+    else if (message.type === 'bye' && isStarted)
+        handleRemoteHangup();
+}
+
+function handleSdpMessage(message) {
+    if (message.sdp.type === 'offer') {
+        if (!isInitiator && !isStarted) {
+            maybeStart();
         }
-    };
+        pc.setRemoteDescription(new RTCSessionDescription(message.sdp));
+        doAnswer();
+    } else if (message.sdp.type === 'answer' && isStarted) {
+        pc.setRemoteDescription(new RTCSessionDescription(message.sdp));
+    }
+}
+
+function handleIceMessage(message) {
+    if (message.ice.type === 'candidate' && isStarted) {
+        var candidate = new RTCIceCandidate({
+            sdpMLineIndex: message.ice.label,
+            candidate: message.ice.candidate
+        });
+        pc.addIceCandidate(candidate);
+    }
 }
 
 function sendMessage(message) {
     console.log('Client sending message: ', message);
-    //socket.emit('message', message);
-    dataWebSocket.send('type=sdp&sdp=' + JSON.stringify(message));
+    dataWebSocket.send('{type=sdp,sdp=' + JSON.stringify(message) + '}');
 }
 
 function sendIceMessage(message) {
     console.log('Client sending message: ', message);
-    dataWebSocket.send('type=ice&ice=' + JSON.stringify(message));
+    dataWebSocket.send('{type=ice,ice=' + JSON.stringify(message) + '}');
 }
 
 function maybeStart() {
