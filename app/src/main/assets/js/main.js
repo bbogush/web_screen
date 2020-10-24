@@ -1,9 +1,4 @@
-'use strict';
 
-var isChannelReady = false;
-var isInitiator = false;
-var isStarted = false;
-var localStream;
 var pc;
 var remoteStream;
 var turnReady;
@@ -47,7 +42,6 @@ function onWsOpen(event) {
     console.log("WebSocket opened");
 
     dataWebSocket.send('{type:join}');
-    isChannelReady = true;
 
     mouseInit(dataWebSocket);
 }
@@ -68,52 +62,15 @@ function onWsMessage(event) {
         handleSdpMessage(message);
     else if (message.type === 'ice')
         handleIceMessage(message);
-    else if (message.type === 'bye' && isStarted)
+    else if (message.type === 'bye')
         handleRemoteHangup();
 }
 
 function handleSdpMessage(message) {
     if (message.sdp.type === 'offer') {
-        if (!isInitiator && !isStarted) {
-            maybeStart();
-        }
+        createPeerConnection();
         pc.setRemoteDescription(new RTCSessionDescription(message.sdp));
         doAnswer();
-    } else if (message.sdp.type === 'answer' && isStarted) {
-        pc.setRemoteDescription(new RTCSessionDescription(message.sdp));
-    }
-}
-
-function handleIceMessage(message) {
-    if (message.ice.type === 'candidate' && isStarted) {
-        var candidate = new RTCIceCandidate({
-            sdpMLineIndex: message.ice.label,
-            candidate: message.ice.candidate
-        });
-        pc.addIceCandidate(candidate);
-    }
-}
-
-function sendMessage(message) {
-    console.log('Client sending message: ', message);
-    dataWebSocket.send('{type=sdp,sdp=' + JSON.stringify(message) + '}');
-}
-
-function sendIceMessage(message) {
-    console.log('Client sending message: ', message);
-    dataWebSocket.send('{type=ice,ice=' + JSON.stringify(message) + '}');
-}
-
-function maybeStart() {
-    console.log('>>>>>>> maybeStart() ', isStarted, localStream, isChannelReady);
-    if (!isStarted /*&& typeof localStream !== 'undefined'*/ && isChannelReady) {
-        console.log('>>>>>> creating peer connection');
-        createPeerConnection();
-        isStarted = true;
-        console.log('isInitiator', isInitiator);
-        if (isInitiator) {
-            doCall();
-        }
     }
 }
 
@@ -131,6 +88,44 @@ function createPeerConnection() {
     }
 }
 
+function doAnswer() {
+    console.log('Sending answer to peer.');
+    pc.createAnswer().then(
+        setLocalAndSendMessage,
+        onCreateSessionDescriptionError
+    );
+}
+
+function setLocalAndSendMessage(sessionDescription) {
+    pc.setLocalDescription(sessionDescription);
+    console.log('setLocalAndSendMessage sending message', sessionDescription);
+    sendSdpMessage(sessionDescription);
+}
+
+function sendSdpMessage(message) {
+    console.log('Client sending message: ', message);
+    dataWebSocket.send('{type=sdp,sdp=' + JSON.stringify(message) + '}');
+}
+
+function onCreateSessionDescriptionError(error) {
+    console.log('Failed to create session description: ' + error.toString());
+}
+
+function handleIceMessage(message) {
+    if (message.ice.type === 'candidate') {
+        var candidate = new RTCIceCandidate({
+            sdpMLineIndex: message.ice.label,
+            candidate: message.ice.candidate
+        });
+        pc.addIceCandidate(candidate);
+    }
+}
+
+function sendIceMessage(message) {
+    console.log('Client sending message: ', message);
+    dataWebSocket.send('{type=ice,ice=' + JSON.stringify(message) + '}');
+}
+
 function handleIceCandidate(event) {
     console.log('icecandidate event: ', event);
     if (event.candidate) {
@@ -143,33 +138,6 @@ function handleIceCandidate(event) {
     } else {
         console.log('End of candidates.');
     }
-}
-
-function handleCreateOfferError(event) {
-    console.log('createOffer() error: ', event);
-}
-
-function doCall() {
-    console.log('Sending offer to peer');
-    pc.createOffer(setLocalAndSendMessage, handleCreateOfferError);
-}
-
-function doAnswer() {
-    console.log('Sending answer to peer.');
-    pc.createAnswer().then(
-        setLocalAndSendMessage,
-        onCreateSessionDescriptionError
-    );
-}
-
-function setLocalAndSendMessage(sessionDescription) {
-    pc.setLocalDescription(sessionDescription);
-    console.log('setLocalAndSendMessage sending message', sessionDescription);
-    sendMessage(sessionDescription);
-}
-
-function onCreateSessionDescriptionError(error) {
-    trace('Failed to create session description: ' + error.toString());
 }
 
 function requestTurn(turnURL) {
@@ -211,20 +179,12 @@ function handleRemoteStreamRemoved(event) {
     console.log('Remote stream removed. Event: ', event);
 }
 
-function hangup() {
-    console.log('Hanging up.');
-    stop();
-    //XXX sendMessage('bye');
-}
-
 function handleRemoteHangup() {
     console.log('Session terminated.');
     stop();
-    isInitiator = false;
 }
 
 function stop() {
-    isStarted = false;
     pc.close();
     pc = null;
 }
