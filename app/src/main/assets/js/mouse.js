@@ -1,6 +1,3 @@
-/*
- *  Copyright (c) 2020 The WebScreen project authors. All Rights Reserved.
- */
 
 var mouseDown = false;
 var mouseWebSocket = null;
