@@ -1,11 +1,11 @@
 
-var pc;
-var remoteStream;
-var turnReady;
-var dataWebSocket;
-var remoteVideo;
+let pc;
+let remoteStream;
+let turnReady;
+let dataWebSocket;
+let remoteVideo;
 
-var pcConfig = {
+let pcConfig = {
     'iceServers': [{
         'urls': 'stun:stun.l.google.com:19302'
     }]
@@ -15,22 +15,31 @@ window.onload = init;
 window.onbeforeunload = uninit;
 
 function init() {
+    console.log('Main: init.');
+
+    varInit();
     webSocketInit();
-
-    remoteVideo = document.querySelector('#screen');
-
-    if (location.hostname !== 'localhost') {
-        requestTurn(
-            'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
-        );
-    }
+    turnInit();
 }
 
 function uninit() {
-    dataWebSocket.send('{type:bye}');
+    console.log('Main: uninit');
+
+    webSocketUninit();
+    varUninit();
+}
+
+function varInit() {
+    remoteVideo = document.querySelector('#screen');
+}
+
+function varUninit() {
+    remoteStream = null;
 }
 
 function webSocketInit() {
+    console.log('WebSocket: init.');
+
     dataWebSocket = new WebSocket('ws://' + window.location.host);
     dataWebSocket.onopen = onWsOpen;
     dataWebSocket.onclose = onWsClose;
@@ -38,26 +47,37 @@ function webSocketInit() {
     dataWebSocket.onmessage = onWsMessage;
 }
 
-function onWsOpen(event) {
-    console.log("WebSocket opened");
+function webSocketUninit() {
+    console.log('WebSocket: uninit.');
 
-    dataWebSocket.send('{type:join}');
+    sendMessage('{type:bye}');
+    dataWebSocket.close();
+    dataWebSocket = null;
+}
+
+function onWsOpen(event) {
+    console.log("WebSocket: opened");
+
+    sendMessage('{type:join}');
 
     mouseInit(dataWebSocket);
 }
 
 function onWsClose(event) {
-    console.log('WebSocket closed');
+    console.log('WebSocket: closed.');
+
+    mouseUninit();
+    destroyPeerConnection();
 }
 
 function onWsError(error) {
-    console.log("WebSocket error: " + error.message);
+    console.log("WebSocket: error: " + error.message);
 }
 
 function onWsMessage(event) {
-    console.log('Received message:', event);
-    var message = JSON.parse(event.data);
+    console.log('WebSocket: received message:', event);
 
+    let message = JSON.parse(event.data);
     if (message.type === 'sdp')
         handleSdpMessage(message);
     else if (message.type === 'ice')
@@ -75,21 +95,31 @@ function handleSdpMessage(message) {
 }
 
 function createPeerConnection() {
+    console.log('WebRTC: create RTCPeerConnnection.');
+
     try {
         pc = new RTCPeerConnection(null);
         pc.onicecandidate = handleIceCandidate;
         pc.onaddstream = handleRemoteStreamAdded;
         pc.onremovestream = handleRemoteStreamRemoved;
-        console.log('Created RTCPeerConnnection');
     } catch (e) {
-        console.log('Failed to create PeerConnection, exception: ' + e.message);
-        alert('Cannot create RTCPeerConnection object.');
+        console.log('WebRTC: Failed to create PeerConnection, exception: ' + e.message);
         return;
     }
 }
 
+function destroyPeerConnection() {
+    console.log('WebRTC: destroy RTCPeerConnnection.');
+
+    if (pc == null)
+        return;
+    pc.close();
+    pc = null;
+}
+
 function doAnswer() {
-    console.log('Sending answer to peer.');
+    console.log('WebRTC: create answer.');
+
     pc.createAnswer().then(
         setLocalAndSendMessage,
         onCreateSessionDescriptionError
@@ -98,36 +128,46 @@ function doAnswer() {
 
 function setLocalAndSendMessage(sessionDescription) {
     pc.setLocalDescription(sessionDescription);
-    console.log('setLocalAndSendMessage sending message', sessionDescription);
     sendSdpMessage(sessionDescription);
 }
 
 function sendSdpMessage(message) {
-    console.log('Client sending message: ', message);
-    dataWebSocket.send('{type=sdp,sdp=' + JSON.stringify(message) + '}');
+    console.log('WebSocket: client sending message: ', message);
+
+    sendMessage('{type=sdp,sdp=' + JSON.stringify(message) + '}');
 }
 
 function onCreateSessionDescriptionError(error) {
-    console.log('Failed to create session description: ' + error.toString());
+    console.log('WebRTC: failed to create session description: ' + error.toString());
 }
 
 function handleIceMessage(message) {
     if (message.ice.type === 'candidate') {
-        var candidate = new RTCIceCandidate({
+        let candidate = new RTCIceCandidate({
             sdpMLineIndex: message.ice.label,
             candidate: message.ice.candidate
         });
-        pc.addIceCandidate(candidate);
+        pc.addIceCandidate(candidate).then(onAddIceCandidateSuccess, onAddIceCandidateError);
     }
 }
 
+function onAddIceCandidateSuccess() {
+    console.log('WebRTC: Ice candidate successfully added.');
+}
+
+function onAddIceCandidateError(error) {
+    console.log('WebRTC: failed to add ice candidate: ' + error.toString());
+}
+
 function sendIceMessage(message) {
-    console.log('Client sending message: ', message);
-    dataWebSocket.send('{type=ice,ice=' + JSON.stringify(message) + '}');
+    console.log('WebSocket: client sending message: ', message);
+
+    sendMessage('{type=ice,ice=' + JSON.stringify(message) + '}')
 }
 
 function handleIceCandidate(event) {
-    console.log('icecandidate event: ', event);
+    console.log('WebRTC: icecandidate event: ', event);
+
     if (event.candidate) {
         sendIceMessage({
             type: 'candidate',
@@ -136,13 +176,21 @@ function handleIceCandidate(event) {
             candidate: event.candidate.candidate
         });
     } else {
-        console.log('End of candidates.');
+        console.log('WebRTC: end of candidates.');
+    }
+}
+
+function turnInit() {
+    if (location.hostname !== 'localhost') {
+        requestTurn(
+            'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
+        );
     }
 }
 
 function requestTurn(turnURL) {
-    var turnExists = false;
-    for (var i in pcConfig.iceServers) {
+    let turnExists = false;
+    for (let i in pcConfig.iceServers) {
         if (pcConfig.iceServers[i].urls.substr(0, 5) === 'turn:') {
             turnExists = true;
             turnReady = true;
@@ -150,12 +198,12 @@ function requestTurn(turnURL) {
         }
     }
     if (!turnExists) {
-        console.log('Getting TURN server from ', turnURL);
+        console.log('WebRTC: getting TURN server from ', turnURL);
         // No TURN server. Get one from computeengineondemand.appspot.com:
-        var xhr = new XMLHttpRequest();
+        let xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4 && xhr.status === 200) {
-                var turnServer = JSON.parse(xhr.responseText);
+                let turnServer = JSON.parse(xhr.responseText);
                 console.log('Got TURN server: ', turnServer);
                 pcConfig.iceServers.push({
                     'urls': 'turn:' + turnServer.username + '@' + turnServer.turn,
@@ -170,21 +218,24 @@ function requestTurn(turnURL) {
 }
 
 function handleRemoteStreamAdded(event) {
-    console.log('Remote stream added.');
+    console.log('WebRTC: remote stream added.');
     remoteStream = event.stream;
     remoteVideo.srcObject = remoteStream;
 }
 
 function handleRemoteStreamRemoved(event) {
-    console.log('Remote stream removed. Event: ', event);
+    console.log('WebRTC: Remote stream removed. Event: ', event);
 }
 
 function handleRemoteHangup() {
-    console.log('Session terminated.');
-    stop();
+    console.log('WebSocket: session terminated by remote party.');
+    destroyPeerConnection();
 }
 
-function stop() {
-    pc.close();
-    pc = null;
+function sendMessage(message) {
+    if (dataWebSocket == null)
+        return;
+
+    console.log('WebSocket: client sending message: ', message);
+    dataWebSocket.send(message);
 }

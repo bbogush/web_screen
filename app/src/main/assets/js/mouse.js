@@ -1,14 +1,30 @@
 
-var mouseDown = false;
-var mouseWebSocket = null;
+let mouseDown = false;
+let mouseWebSocket = null;
+let remoteVideoRect;
 
 function mouseInit(ws) {
     mouseWebSocket = ws;
-    document.getElementById('screen').ondragstart = function() { return false; };
-    document.getElementById('screen').addEventListener('mousedown', mouseDownHandler);
-    document.getElementById('screen').addEventListener('mousemove', mouseMoveHandler);
-    document.getElementById('screen').addEventListener('mouseup', mouseUpHandler);
-    document.getElementById('screen').addEventListener('wheel', mouseWheelHandler);
+
+    remoteVideoRect = document.getElementById('screen');
+    remoteVideoRect.addEventListener('mousedown', mouseDownHandler);
+    remoteVideoRect.addEventListener('mousemove', mouseMoveHandler);
+    remoteVideoRect.addEventListener('mouseup', mouseUpHandler);
+    remoteVideoRect.addEventListener('wheel', mouseWheelHandler);
+    remoteVideoRect.addEventListener('ondragstart', onDragStart);
+}
+
+function mouseUninit() {
+    remoteVideoRect.removeEventListener('ondragstart', onDragStart);
+    remoteVideoRect.removeEventListener('wheel', mouseWheelHandler);
+    remoteVideoRect.removeEventListener('mouseup', mouseUpHandler);
+    remoteVideoRect.removeEventListener('mousemove', mouseMoveHandler);
+    remoteVideoRect.removeEventListener('mousedown', mouseDownHandler);
+    remoteVideoRect = null;
+}
+
+function onDragStart() {
+    return false;
 }
 
 function mouseDownHandler(e) {
@@ -49,22 +65,22 @@ function mouseWheelHandler(e) {
 }
 
 function isMouseLeftButtonPressed(e) {
-    var MOUSE_LEFT_BUTTON_NUMBER = 1;
+    let MOUSE_LEFT_BUTTON_NUMBER = 1;
 
     return e.buttons === undefined ? e.which === MOUSE_LEFT_BUTTON_NUMBER :
         e.buttons === MOUSE_LEFT_BUTTON_NUMBER;
 }
 
 function mouseHandler(e, action) {
-    var position = getPosition(e);
-    var params = '{type=mouse_' + action + ',x=' + position.x + ',y=' + position.y + '}';
-    mouseWebSocket.send(params);
+    let position = getPosition(e);
+    let params = '{type=mouse_' + action + ',x=' + position.x + ',y=' + position.y + '}';
+    sendMouseMessage(params);
 }
 
 function getPosition(e) {
-    var rect = e.target.getBoundingClientRect();
-    var x = e.clientX - rect.left;
-    var y = e.clientY - rect.top;
+    let rect = e.target.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
 
     x = Math.round(x * e.target.videoWidth * 1.0 / e.target.clientWidth);
     y = Math.round(y * e.target.videoHeight * 1.0 / e.target.clientHeight);
@@ -93,7 +109,14 @@ function lockButtonHandler() {
 }
 
 function buttonHandler(button) {
-    mouseWebSocket.send('{type=button_' + button + '}');
+    sendMouseMessage('{type=button_' + button + '}');
+}
+
+function sendMouseMessage(message) {
+    if (mouseWebSocket == null)
+        return;
+
+    mouseWebSocket.send(message);
 }
 
 
