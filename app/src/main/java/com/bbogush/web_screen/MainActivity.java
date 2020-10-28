@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
     private HttpServer httpServer = null;
     private int httpServerPort;
     private MediaProjectionManager mediaProjectionManager;
-    private ScreenCapture screenCapture;
+    private VideoCapturer videoCapturerAndroid;
     private MouseAccessibilityService mouseAccessibilityService = null;
 
     private AppService appService = null;
@@ -259,7 +259,6 @@ public class MainActivity extends AppCompatActivity {
                 if (mouseAccessibilityService != null) {
                     setRemoteControlSwitch();
                 }
-                screenCapture = appService.getScreenCapture();
             }
         }
 
@@ -303,14 +302,7 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    private Intent permissionIntent;
-    VideoCapturer videoCapturerAndroid;
     private void startMediaProjection(Intent data) {
-//        MediaProjection mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK,
-//                data);
-        //screenCapture = new ScreenCapture(mediaProjection, getApplicationContext());
-        ///appService.setScreenCapture(screenCapture);
-        //appService.startScreenCapture();
         videoCapturerAndroid = new ScreenCapturerAndroid(data,
                 new MediaProjection.Callback() {
                     @Override
@@ -322,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startHttpServer() {
-        httpServer = new HttpServer(screenCapture, mouseAccessibilityService, httpServerPort,
+        httpServer = new HttpServer(mouseAccessibilityService, httpServerPort,
                 getApplicationContext(), videoCapturerAndroid);
         appService.setHttpServer(httpServer);
         try {

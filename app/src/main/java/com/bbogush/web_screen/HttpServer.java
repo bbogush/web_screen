@@ -85,7 +85,6 @@ public class HttpServer extends NanoWSD {
 
 
     private MouseAccessibilityService mouseAccessibilityService;
-    private ScreenCapture capture;
     private Context context;
     private Intent permissionIntent;
     MediaConstraints audioConstraints;
@@ -101,10 +100,9 @@ public class HttpServer extends NanoWSD {
 
     List<PeerConnection.IceServer> peerIceServers = new ArrayList<>();
 
-    public HttpServer(ScreenCapture capture, MouseAccessibilityService mouseAccessibilityService,
-                      int port, Context context, VideoCapturer vc) {
+    public HttpServer(MouseAccessibilityService mouseAccessibilityService, int port,
+                      Context context, VideoCapturer vc) {
         super(port);
-        this.capture = capture;
         this.context = context;
         this.mouseAccessibilityService = mouseAccessibilityService;
         //this.permissionIntent = permissionIntent;
@@ -202,8 +200,6 @@ public class HttpServer extends NanoWSD {
     private Response handleGet(IHTTPSession session, String uri) {
         if (uri.contentEquals("/")) {
             return handleRootRequest(session);
-        } else if (uri.contentEquals("/mjpeg")) {
-            return handleMjpegRequest(session);
         }
 
         return handleFileRequest(session, uri);
@@ -342,21 +338,6 @@ public class HttpServer extends NanoWSD {
             mime = MIME_TEXT_PLAIN_JS;
 
         return newChunkedResponse(Response.Status.OK, mime, fileStream);
-    }
-
-    private Response handleMjpegRequest(IHTTPSession session) {
-        notifyAboutNewConnection(session);
-
-        Response res;
-        String mime = "multipart/x-mixed-replace; boundary=" + MjpegStream.boundary;
-        res = newChunkedResponse(Response.Status.OK, mime, new MjpegStream(capture));
-        res.addHeader("Cache-Control",
-                "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0," +
-                        "private");
-        res.addHeader("Pragma", "no-cache");
-        res.addHeader("Expires", "-1");
-
-        return res;
     }
 
     private void notifyAboutNewConnection(IHTTPSession session) {

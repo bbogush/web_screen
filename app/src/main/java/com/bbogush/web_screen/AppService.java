@@ -48,7 +48,6 @@ public class AppService extends Service {
 
     private final IBinder iBinder = new AppServiceBinder();
 
-    private ScreenCapture screenCapture = null;
     private HttpServer httpServer = null;
     private List<IceServer> iceServers = null;
     List<PeerConnection.IceServer> peerIceServers = new ArrayList<>();
@@ -62,7 +61,6 @@ public class AppService extends Service {
     @Override
     public void onDestroy() {
         stopHttpServer();
-        stopScreenCapture();
         SignallingClient.getInstance().close();
         isRunning = false;
         Log.d(TAG, "Service destroyed");
@@ -120,26 +118,6 @@ public class AppService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return iBinder;
-    }
-
-    public void setScreenCapture(ScreenCapture capture) {
-        screenCapture = capture;
-    }
-
-    public void startScreenCapture() {
-        if (screenCapture == null)
-            return;
-        screenCapture.start();
-    }
-
-    public void stopScreenCapture() {
-        if (screenCapture == null)
-            return;
-        screenCapture.stop();
-    }
-
-    public ScreenCapture getScreenCapture() {
-        return screenCapture;
     }
 
     public void setHttpServer(HttpServer server) {
