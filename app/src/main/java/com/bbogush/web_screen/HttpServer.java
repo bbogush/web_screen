@@ -1,48 +1,18 @@
 package com.bbogush.web_screen;
 
 import android.content.Context;
-import android.content.Intent;
-import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Display;
-import android.view.View;
-import android.view.WindowManager;
 import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.webrtc.AudioSource;
-import org.webrtc.AudioTrack;
-import org.webrtc.Camera1Enumerator;
-import org.webrtc.CameraEnumerator;
-import org.webrtc.DefaultVideoDecoderFactory;
-import org.webrtc.DefaultVideoEncoderFactory;
-import org.webrtc.EglBase;
-import org.webrtc.IceCandidate;
-import org.webrtc.Logging;
-import org.webrtc.MediaConstraints;
-import org.webrtc.MediaStream;
-import org.webrtc.PeerConnection;
-import org.webrtc.PeerConnectionFactory;
-import org.webrtc.ScreenCapturerAndroid;
-import org.webrtc.SessionDescription;
-import org.webrtc.SurfaceTextureHelper;
-import org.webrtc.VideoCapturer;
-import org.webrtc.VideoSource;
-import org.webrtc.VideoTrack;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -52,14 +22,7 @@ public class HttpServer extends NanoWSD {
     private static final String TAG = HttpServer.class.getSimpleName();
 
     private static final String HTML_DIR = "html/";
-    private static final String JS_DIR = "js/";
     private static final String INDEX_HTML = "index.html";
-    private static final String MAIN_JS = "main.js";
-    private static final String IMAGE_BACK = "back.svg";
-    private static final String IMAGE_HOME = "home.svg";
-    private static final String IMAGE_RECENT = "recent.svg";
-    private static final String IMAGE_POWER = "power.svg";
-    private static final String IMAGE_LOCK = "lock.svg";
     private static final String MIME_IMAGE_SVG = "image/svg+xml";
     private static final String MIME_JS = "text/javascript";
     private static final String MIME_TEXT_PLAIN_JS = "text/plain";
@@ -78,37 +41,17 @@ public class HttpServer extends NanoWSD {
     private static final String TYPE_VALUE_JOIN = "join";
     private static final String TYPE_VALUE_SDP = "sdp";
     private static final String TYPE_VALUE_ICE = "ice";
-    private static final String MOUSE_PARAM_X = "x";
-    private static final String MOUSE_PARAM_Y = "y";
-    private static final String SDP_PARAM = "sdp";
-    private static final String ICE_PARAM = "ice";
 
-
-    private MouseAccessibilityService mouseAccessibilityService;
     private Context context;
-    private Intent permissionIntent;
-    MediaConstraints audioConstraints;
-    MediaConstraints videoConstraints;
-    PeerConnection localPeer;
-    VideoCapturer videoCapturer;
-    VideoSource videoSource;
-    VideoTrack localVideoTrack;
-    AudioSource audioSource;
-    AudioTrack localAudioTrack;
-    MediaConstraints sdpConstraints;
-    Ws webSocket;
+    Ws webSocket = null;
 
-    List<PeerConnection.IceServer> peerIceServers = new ArrayList<>();
+    private HttpServer.HttpServerInterface httpServerInterface;
 
-    public HttpServer(MouseAccessibilityService mouseAccessibilityService, int port,
-                      Context context, VideoCapturer vc) {
+    public HttpServer(int port, Context context,
+                      HttpServer.HttpServerInterface httpServerInterface) {
         super(port);
         this.context = context;
-        this.mouseAccessibilityService = mouseAccessibilityService;
-        //this.permissionIntent = permissionIntent;
-        this.videoCapturer = vc;
-        initWebRTC();
-        createPeerConnection();
+        this.httpServerInterface = httpServerInterface;
     }
 
     class Ws extends WebSocket {
@@ -154,7 +97,7 @@ public class HttpServer extends NanoWSD {
                 return;
             }
 
-            handleRequest(this, json);
+            handleRequest(json);
         }
 
         @Override
@@ -179,6 +122,27 @@ public class HttpServer extends NanoWSD {
         String uri = session.getUri();
 
         return serveRequest(session, uri, method);
+    }
+
+    public interface HttpServerInterface {
+        void onMouseDown(JSONObject message);
+        void onMouseMove(JSONObject message);
+        void onMouseUp(JSONObject message);
+        void onMouseZoomIn(JSONObject message);
+        void onMouseZoomOut(JSONObject message);
+        void onButtonBack();
+        void onButtonHome();
+        void onButtonRecent();
+        void onButtonPower();
+        void onButtonLock();
+        void onJoin(HttpServer server);
+        void onSdp(JSONObject message);
+        void onIceCandidate(JSONObject message);
+    }
+
+    public void send(String message) throws IOException {
+        if (webSocket != null)
+            webSocket.send(message);
     }
 
     private Response serveRequest(IHTTPSession session, String uri, Method method) {
@@ -211,8 +175,8 @@ public class HttpServer extends NanoWSD {
         return newFixedLengthResponse(Response.Status.OK, MIME_HTML, indexHtml);
     }
 
-    private void handleRequest(Ws ws, JSONObject json) {
-        String type = null;
+    private void handleRequest(JSONObject json) {
+        String type;
         try {
             type = json.getString(TYPE_PARAM);
         } catch (JSONException e) {
@@ -221,78 +185,44 @@ public class HttpServer extends NanoWSD {
         }
 
         switch (type) {
-            case TYPE_VALUE_MOUSE_UP:
-            case TYPE_VALUE_MOUSE_MOVE:
             case TYPE_VALUE_MOUSE_DOWN:
+                httpServerInterface.onMouseDown(json);
+                break;
+            case TYPE_VALUE_MOUSE_MOVE:
+                httpServerInterface.onMouseMove(json);
+                break;
+            case TYPE_VALUE_MOUSE_UP:
+                httpServerInterface.onMouseUp(json);
+                break;
             case TYPE_VALUE_MOUSE_ZOOM_IN:
+                httpServerInterface.onMouseZoomIn(json);
+                break;
             case TYPE_VALUE_MOUSE_ZOOM_OUT:
-                if (mouseAccessibilityService == null)
-                    return;
-                handleMouseRequest(type, json);
+                httpServerInterface.onMouseZoomOut(json);
                 break;
             case TYPE_VALUE_BUTTON_BACK:
-                if (mouseAccessibilityService == null)
-                    return;
-                mouseAccessibilityService.backButtonClick();
+                httpServerInterface.onButtonBack();
                 break;
             case TYPE_VALUE_BUTTON_HOME:
-                if (mouseAccessibilityService == null)
-                    return;
-                mouseAccessibilityService.homeButtonClick();
+                httpServerInterface.onButtonHome();
                 break;
             case TYPE_VALUE_BUTTON_RECENT:
-                if (mouseAccessibilityService == null)
-                    return;
-                mouseAccessibilityService.recentButtonClick();
+                httpServerInterface.onButtonRecent();
                 break;
             case TYPE_VALUE_BUTTON_POWER:
-                if (mouseAccessibilityService == null)
-                    return;
-                mouseAccessibilityService.powerButtonClick();
+                httpServerInterface.onButtonPower();
                 break;
             case TYPE_VALUE_BUTTON_LOCK:
-                if (mouseAccessibilityService == null)
-                    return;
-                mouseAccessibilityService.lockButtonClick();
-                break;
-            case TYPE_VALUE_SDP:
-                onAnswerReceived(json);
+                httpServerInterface.onButtonLock();
                 break;
             case TYPE_VALUE_JOIN:
-                onTryToStart(ws);
+                httpServerInterface.onJoin(this);
+                break;
+            case TYPE_VALUE_SDP:
+                httpServerInterface.onSdp(json);
                 break;
             case TYPE_VALUE_ICE:
-                onIceCandidateReceived(json);
-                break;
-        }
-    }
-
-    private void handleMouseRequest(String type, JSONObject json) {
-        int x, y;
-
-        try {
-            x = json.getInt(MOUSE_PARAM_X);
-            y = json.getInt(MOUSE_PARAM_Y);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        switch (type) {
-            case TYPE_VALUE_MOUSE_UP:
-                mouseAccessibilityService.mouseUp(x, y);
-                break;
-            case TYPE_VALUE_MOUSE_MOVE:
-                mouseAccessibilityService.mouseMove(x, y);
-                break;
-            case TYPE_VALUE_MOUSE_DOWN:
-                mouseAccessibilityService.mouseDown(x, y);
-                break;
-            case TYPE_VALUE_MOUSE_ZOOM_IN:
-                mouseAccessibilityService.mouseWheelZoomIn(x, y);
-                break;
-            case TYPE_VALUE_MOUSE_ZOOM_OUT:
-                mouseAccessibilityService.mouseWheelZoomOut(x, y);
+                httpServerInterface.onIceCandidate(json);
                 break;
         }
     }
@@ -351,300 +281,4 @@ public class HttpServer extends NanoWSD {
             }
         });
     }
-
-    public void setMouseAccessibilityService(MouseAccessibilityService mouseAccessibilityService) {
-        this.mouseAccessibilityService = mouseAccessibilityService;
-    }
-
-    public MouseAccessibilityService getMouseAccessibilityService() {
-        return mouseAccessibilityService;
-    }
-
-    private EglBase rootEglBase;
-    private PeerConnectionFactory peerConnectionFactory;
-
-    private void initWebRTC() {
-        rootEglBase = EglBase.create();
-
-        PeerConnectionFactory.InitializationOptions initializationOptions =
-                PeerConnectionFactory.InitializationOptions.builder(context)
-                        .createInitializationOptions();
-        PeerConnectionFactory.initialize(initializationOptions);
-
-        PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
-        DefaultVideoEncoderFactory defaultVideoEncoderFactory = new DefaultVideoEncoderFactory(
-                rootEglBase.getEglBaseContext(),  /* enableIntelVp8Encoder */false,  /*
-                enableH264HighProfile */true);
-        DefaultVideoDecoderFactory defaultVideoDecoderFactory = new DefaultVideoDecoderFactory(rootEglBase.getEglBaseContext());
-        peerConnectionFactory = PeerConnectionFactory.builder()
-                .setOptions(options)
-                .setVideoEncoderFactory(defaultVideoEncoderFactory)
-                .setVideoDecoderFactory(defaultVideoDecoderFactory)
-                .createPeerConnectionFactory();
-
-        //XXX enable camera for test
-        //videoCapturer = createCameraCapturer(new Camera1Enumerator(false));
-
-        audioConstraints = new MediaConstraints();
-        videoConstraints = new MediaConstraints();
-
-        SurfaceTextureHelper surfaceTextureHelper;
-        surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", rootEglBase.getEglBaseContext());
-        VideoSource videoSource =
-                peerConnectionFactory.createVideoSource(videoCapturer.isScreencast());
-        videoCapturer.initialize(surfaceTextureHelper, context, videoSource.getCapturerObserver());
-
-        localVideoTrack = peerConnectionFactory.createVideoTrack("100", videoSource);
-
-        audioSource = peerConnectionFactory.createAudioSource(audioConstraints);
-        localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource);
-
-        DisplayMetrics metrics = new DisplayMetrics();
-        WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
-        display.getRealMetrics(metrics);
-        if (videoCapturer != null) {
-            videoCapturer.startCapture(metrics.widthPixels, metrics.heightPixels, 30);
-        }
-    }
-
-    public void onTryToStart(Ws ws) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-        createPeerConnection();
-        doCall(ws);
-    }
-
-    private void createPeerConnection() {
-        PeerConnection.RTCConfiguration rtcConfig =
-                new PeerConnection.RTCConfiguration(peerIceServers);
-        // TCP candidates are only useful when connecting to a server that supports
-        // ICE-TCP.
-        rtcConfig.tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED;
-        rtcConfig.bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE;
-        rtcConfig.rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE;
-        rtcConfig.continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY;
-        // Use ECDSA encryption.
-        rtcConfig.keyType = PeerConnection.KeyType.ECDSA;
-        localPeer = peerConnectionFactory.createPeerConnection(rtcConfig,
-                new CustomPeerConnectionObserver("localPeerCreation") {
-            @Override
-            public void onIceCandidate(IceCandidate iceCandidate) {
-                super.onIceCandidate(iceCandidate);
-                onIceCandidateReceived(iceCandidate);
-            }
-
-            @Override
-            public void onAddStream(MediaStream mediaStream) {
-                //showToast("Received Remote stream");
-                super.onAddStream(mediaStream);
-                gotRemoteStream(mediaStream);
-            }
-        });
-
-        addStreamToLocalPeer();
-    }
-
-    public void onIceCandidateReceived(IceCandidate iceCandidate) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-
-        JSONObject messageJson = new JSONObject();
-        JSONObject iceJson = new JSONObject();
-        try {
-            iceJson.put("type", "candidate");
-            iceJson.put("label", iceCandidate.sdpMLineIndex);
-            iceJson.put("id", iceCandidate.sdpMid);
-            iceJson.put("candidate", iceCandidate.sdp);
-
-            messageJson.put("type", "ice");
-            messageJson.put("ice", iceJson);
-
-            String messageJsonStr = messageJson.toString();
-            //XXX broadcast
-            webSocket.send(messageJson.toString());
-            Log.d(TAG, "Send: " + messageJsonStr);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
-    }
-
-    private void gotRemoteStream(MediaStream stream) {
-        //we have remote video stream. add to the renderer.
-//        final VideoTrack videoTrack = stream.videoTracks.get(0);
-//        runOnUiThread(() -> {
-//            try {
-//                remoteVideoView.setVisibility(View.VISIBLE);
-//                videoTrack.addSink(remoteVideoView);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        });
-    }
-
-    private void addStreamToLocalPeer() {
-        //creating local mediastream
-        MediaStream stream = peerConnectionFactory.createLocalMediaStream("102");
-        stream.addTrack(localAudioTrack);
-        stream.addTrack(localVideoTrack);
-        localPeer.addStream(stream);
-    }
-
-    private void doCall(Ws ws) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-        sdpConstraints = new MediaConstraints();
-        sdpConstraints.mandatory.add(
-                new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
-        sdpConstraints.mandatory.add(
-                new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
-        localPeer.createOffer(new CustomSdpObserver("localCreateOffer") {
-            @Override
-            public void onCreateSuccess(SessionDescription sessionDescription) {
-                super.onCreateSuccess(sessionDescription);
-                localPeer.setLocalDescription(new CustomSdpObserver("localSetLocalDesc"), sessionDescription);
-                Log.d("onCreateSuccess", "SignallingClient emit ");
-
-                JSONObject messageJson = new JSONObject();
-                JSONObject sdpJson = new JSONObject();
-                try {
-                    sdpJson.put("type", sessionDescription.type.canonicalForm());
-                    sdpJson.put("sdp", sessionDescription.description);
-
-                    messageJson.put("type", "sdp");
-                    messageJson.put("sdp", sdpJson);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    return;
-                }
-
-                String messageJsonStr = messageJson.toString();
-                try {
-                    ws.send(messageJsonStr);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return;
-                }
-                Log.d(TAG, messageJsonStr);
-            }
-        }, sdpConstraints);
-    }
-
-    private void onOffer(Ws ws, String data) {
-        Log.d(TAG, "Offer: SDP=" + data);
-
-        String sdp;
-        try {
-            JSONObject json = new JSONObject(data);
-            sdp = json.getString("sdp");
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        localPeer.setRemoteDescription(new CustomSdpObserver("localSetRemote"),
-                new SessionDescription(SessionDescription.Type.OFFER, sdp));
-        doAnswer(ws);
-    }
-
-    public void onAnswerReceived(JSONObject data) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-
-        JSONObject json;
-        try {
-            json = data.getJSONObject(SDP_PARAM);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        try {
-            localPeer.setRemoteDescription(new CustomSdpObserver("localSetRemote"),
-                    new SessionDescription(SessionDescription.Type.fromCanonicalForm(json.getString(
-                            "type").toLowerCase()), json.getString("sdp")));
-            //updateVideoViews(true);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void doAnswer(Ws ws) {
-        localPeer.createAnswer(new CustomSdpObserver("localCreateAns") {
-            @Override
-            public void onCreateSuccess(SessionDescription sessionDescription) {
-                super.onCreateSuccess(sessionDescription);
-                localPeer.setLocalDescription(new CustomSdpObserver("localSetLocal"),
-                        sessionDescription);
-                //SignallingClient.getInstance().emitMessage(sessionDescription);
-                JSONObject obj = new JSONObject();
-                try {
-                    obj.put("type", sessionDescription.type.canonicalForm());
-                    obj.put("sdp", sessionDescription.description);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    return;
-                }
-                String jsonStr = obj.toString();
-
-                try {
-                    ws.send(jsonStr);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return;
-                }
-                Log.d(TAG, jsonStr);
-            }
-        }, new MediaConstraints());
-    }
-
-    public void onIceCandidateReceived(JSONObject data) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-
-        JSONObject json;
-        try {
-            json = data.getJSONObject(ICE_PARAM);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        try {
-            localPeer.addIceCandidate(new IceCandidate(json.getString("id"), json.getInt("label"),
-                    json.getString("candidate")));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private VideoCapturer createCameraCapturer(CameraEnumerator enumerator) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-        final String[] deviceNames = enumerator.getDeviceNames();
-
-        // First, try to find front facing camera
-        Logging.d(TAG, "Looking for front facing cameras.");
-        for (String deviceName : deviceNames) {
-            if (enumerator.isFrontFacing(deviceName)) {
-                Logging.d(TAG, "Creating front facing camera capturer.");
-                VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
-
-                if (videoCapturer != null) {
-                    return videoCapturer;
-                }
-            }
-        }
-
-        // Front facing camera not found, try something else
-        Logging.d(TAG, "Looking for other cameras.");
-        for (String deviceName : deviceNames) {
-            if (!enumerator.isFrontFacing(deviceName)) {
-                Logging.d(TAG, "Creating other camera capturer.");
-                VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
-
-                if (videoCapturer != null) {
-                    return videoCapturer;
-                }
-            }
-        }
-
-        return null;
-    }
-
 }

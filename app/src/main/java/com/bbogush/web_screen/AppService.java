@@ -7,35 +7,21 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.media.projection.MediaProjection;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
-import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 
+import org.json.JSONException;
 import org.json.JSONObject;
-import org.webrtc.PeerConnection;
-import org.webrtc.ScreenCapturerAndroid;
-import org.webrtc.VideoCapturer;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
-
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class AppService extends Service {
     private static final String TAG = AppService.class.getSimpleName();
@@ -48,17 +34,17 @@ public class AppService extends Service {
     private static final String NOTIFICATION_TITLE = "WebScreen is running";
     private static final String NOTIFICATION_CONTENT = "Tap to stop";
 
+    private static final String MOUSE_PARAM_X = "x";
+    private static final String MOUSE_PARAM_Y = "y";
+
     private static boolean isRunning = false;
 
     private final IBinder iBinder = new AppServiceBinder();
 
-    private VideoCapturer videoCapturerAndroid = null;
+    private WebRtcManager webRtcManager = null;
 
     private HttpServer httpServer = null;
     private boolean isWebServerRunning = false;
-
-    private List<IceServer> iceServers = null;
-    List<PeerConnection.IceServer> peerIceServers = new ArrayList<>();
 
     private MouseAccessibilityService mouseAccessibilityService = null;
 
@@ -85,8 +71,7 @@ public class AppService extends Service {
         notificationIntent.setAction(Intent.ACTION_MAIN);
         notificationIntent.addCategory(Intent.CATEGORY_LAUNCHER);
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                0, notificationIntent, 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
 
         String channelId = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
                 createNotificationChannel() : "";
@@ -129,12 +114,12 @@ public class AppService extends Service {
         return iBinder;
     }
 
-    public boolean serverStart(Intent data, int port,
+    public boolean serverStart(Intent intent, int port,
                                boolean isAccessibilityServiceEnabled, Context context) {
-        startMediaProjection(data);
-        isWebServerRunning = startHttpServer(port);
-        //XXX getIceServers();
-        initSignaling();
+        if (!(isWebServerRunning = startHttpServer(port)))
+            return false;
+
+        webRtcManager = new WebRtcManager(intent, getApplicationContext(), httpServer);
 
         accessibilityServiceSet(context, isAccessibilityServiceEnabled);
 
@@ -148,9 +133,9 @@ public class AppService extends Service {
 
         accessibilityServiceSet(null, false);
 
-        uninitSignaling();
         stopHttpServer();
-        stopMediaProjection();
+        webRtcManager.close();
+        webRtcManager = null;
     }
 
     public boolean isServerRunning() {
@@ -164,24 +149,8 @@ public class AppService extends Service {
         return isWebServerRunning;
     }
 
-    public void startMediaProjection(Intent data) {
-        videoCapturerAndroid = new ScreenCapturerAndroid(data,
-                new MediaProjection.Callback() {
-                    @Override
-                    public void onStop() {
-                        super.onStop();
-                        Log.e(TAG, "User has revoked media projection permissions");
-                    }
-                });
-    }
-
-    public void stopMediaProjection() {
-        videoCapturerAndroid = null;
-    }
-
     public boolean startHttpServer(int httpServerPort) {
-        httpServer = new HttpServer(mouseAccessibilityService, httpServerPort,
-                getApplicationContext(), videoCapturerAndroid);
+        httpServer = new HttpServer(httpServerPort, getApplicationContext(), httpServerInterface);
         try {
             httpServer.start();
         } catch (IOException e) {
@@ -194,133 +163,118 @@ public class AppService extends Service {
         return true;
     }
 
+    private HttpServer.HttpServerInterface httpServerInterface = new
+            HttpServer.HttpServerInterface() {
+                @Override
+                public void onMouseDown(JSONObject message) {
+                    int[] coordinates = getCoordinates(message);
+                    if (coordinates != null && mouseAccessibilityService != null)
+                        mouseAccessibilityService.mouseDown(coordinates[0], coordinates[1]);
+                }
+
+                @Override
+                public void onMouseMove(JSONObject message) {
+                    int[] coordinates = getCoordinates(message);
+                    if (coordinates != null && mouseAccessibilityService != null)
+                        mouseAccessibilityService.mouseMove(coordinates[0], coordinates[1]);
+                }
+
+                @Override
+                public void onMouseUp(JSONObject message) {
+                    int[] coordinates = getCoordinates(message);
+                    if (coordinates != null && mouseAccessibilityService != null)
+                        mouseAccessibilityService.mouseUp(coordinates[0], coordinates[1]);
+                }
+
+                @Override
+                public void onMouseZoomIn(JSONObject message) {
+                    int[] coordinates = getCoordinates(message);
+                    if (coordinates != null && mouseAccessibilityService != null)
+                        mouseAccessibilityService.mouseWheelZoomIn(coordinates[0], coordinates[1]);
+                }
+
+                @Override
+                public void onMouseZoomOut(JSONObject message) {
+                    int[] coordinates = getCoordinates(message);
+                    if (coordinates != null && mouseAccessibilityService != null)
+                        mouseAccessibilityService.mouseWheelZoomOut(coordinates[0], coordinates[1]);
+                }
+
+                @Override
+                public void onButtonBack() {
+                    mouseAccessibilityService.backButtonClick();
+                }
+
+                @Override
+                public void onButtonHome() {
+                    mouseAccessibilityService.homeButtonClick();
+                }
+
+                @Override
+                public void onButtonRecent() {
+                    mouseAccessibilityService.recentButtonClick();
+                }
+
+                @Override
+                public void onButtonPower() {
+                    mouseAccessibilityService.powerButtonClick();
+                }
+
+                @Override
+                public void onButtonLock() {
+                    mouseAccessibilityService.lockButtonClick();
+                }
+
+                @Override
+                public void onJoin(HttpServer server) {
+                    if (webRtcManager == null)
+                        return;
+                    webRtcManager.onTryToStart(server);
+                }
+
+                @Override
+                public void onSdp(JSONObject message) {
+                    if (webRtcManager == null)
+                        return;
+                    webRtcManager.onAnswerReceived(message);
+                }
+
+                @Override
+                public void onIceCandidate(JSONObject message) {
+                    if (webRtcManager == null)
+                        return;
+                    webRtcManager.onIceCandidateReceived(message);
+                }
+    };
+
+    private int[] getCoordinates(JSONObject json) {
+        int[] coordinates = new int[2];
+
+        try {
+            coordinates[0] = json.getInt(MOUSE_PARAM_X);
+            coordinates[1] = json.getInt(MOUSE_PARAM_Y);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        return coordinates;
+    }
+
     public void stopHttpServer() {
         if (httpServer == null)
             return;
         httpServer.stop();
-    }
-
-
-
-    public void getIceServers() {
-        final String API_ENDPOINT = "https://global.xirsys.net";
-
-        Log.d(TAG, "getIceServers");
-
-        byte[] data = new byte[0];
-        try {
-            data = ("<xirsys_ident>:<xirsys_secret>").getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            return;
-        }
-        Log.d(TAG, "getIceServers2");
-
-        String authToken = "Basic " + Base64.encodeToString(data, Base64.NO_WRAP);
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(API_ENDPOINT)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        Log.d(TAG, "getIceServers3");
-        TurnServer turnServer = retrofit.create(TurnServer.class);
-        Log.d(TAG, "getIceServers4");
-        turnServer.getIceCandidates(authToken).enqueue(new Callback<TurnServerPojo>() {
-            @Override
-            public void onResponse(@NonNull Call<TurnServerPojo> call,
-                                   @NonNull Response<TurnServerPojo> response) {
-                Log.d(TAG, "getIceServers Response");
-                TurnServerPojo body = response.body();
-                if (body != null)
-                    iceServers = body.iceServerList.iceServers;
-
-                Log.d(TAG, "getIceServers iceServers=" + iceServers);
-
-                for (IceServer iceServer : iceServers) {
-                    if (iceServer.credential == null) {
-                        PeerConnection.IceServer peerIceServer = PeerConnection.IceServer
-                                .builder(iceServer.url).createIceServer();
-                        peerIceServers.add(peerIceServer);
-                    } else {
-                        PeerConnection.IceServer peerIceServer = PeerConnection.IceServer
-                                .builder(iceServer.url)
-                                .setUsername(iceServer.username)
-                                .setPassword(iceServer.credential)
-                                .createIceServer();
-                        peerIceServers.add(peerIceServer);
-                    }
-                }
-                Log.d(TAG, "IceServers:\n" + iceServers.toString());
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<TurnServerPojo> call, @NonNull Throwable t) {
-                t.printStackTrace();
-            }
-        });
-    }
-
-    public void initSignaling() {
-        SignallingClient.getInstance().init(new Signaling());
-    }
-
-    public void uninitSignaling() {
-        SignallingClient.getInstance().close();
-    }
-
-    private class Signaling implements SignallingClient.SignalingInterface {
-
-        @Override
-        public void onRemoteHangUp(String msg) {
-
-        }
-
-        @Override
-        public void onOfferReceived(JSONObject data) {
-
-        }
-
-        @Override
-        public void onAnswerReceived(JSONObject data) {
-
-        }
-
-        @Override
-        public void onIceCandidateReceived(JSONObject data) {
-
-        }
-
-        @Override
-        public void onTryToStart() {
-
-        }
-
-        @Override
-        public void onCreatedRoom() {
-
-        }
-
-        @Override
-        public void onJoinedRoom() {
-
-        }
-
-        @Override
-        public void onNewPeerJoined() {
-
-        }
+        httpServer = null;
     }
 
     public void accessibilityServiceSet(Context context, boolean isEnabled) {
         if (isEnabled) {
-            if (httpServer != null && httpServer.getMouseAccessibilityService() != null)
+            if (httpServer != null && mouseAccessibilityService != null)
                 return;
             mouseAccessibilityService = new MouseAccessibilityService();
             mouseAccessibilityService.setContext(context);
-            if (httpServer != null)
-                httpServer.setMouseAccessibilityService(mouseAccessibilityService);
         } else {
-            if (httpServer != null)
-                httpServer.setMouseAccessibilityService(null);
             mouseAccessibilityService = null;
         }
     }
