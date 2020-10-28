@@ -8,9 +8,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.LinkAddress;
 import android.os.Bundle;
@@ -30,7 +27,6 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.google.android.gms.ads.AdRequest;
@@ -40,13 +36,8 @@ import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.initialization.InitializationStatus;
 import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 
-import org.webrtc.ScreenCapturerAndroid;
-import org.webrtc.VideoCapturer;
-
-import java.io.IOException;
 import java.net.Inet6Address;
 import java.util.List;
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -56,11 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int HANDLER_MESSAGE_UPDATE_NETWORK = 0;
 
-    private HttpServer httpServer = null;
     private int httpServerPort;
-    private MediaProjectionManager mediaProjectionManager;
-    private VideoCapturer videoCapturerAndroid;
-    private MouseAccessibilityService mouseAccessibilityService = null;
 
     private AppService appService = null;
     private AppServiceConnection serviceConnection = null;
@@ -251,15 +238,10 @@ public class MainActivity extends AppCompatActivity {
             AppService.AppServiceBinder binder = (AppService.AppServiceBinder)service;
             appService = binder.getService();
 
-            httpServer = appService.getHttpServer();
-            if (httpServer == null)
+            if (!appService.isServerRunning())
                 askMediaProjectionPermission();
-            else {
-                mouseAccessibilityService = httpServer.getMouseAccessibilityService();
-                if (mouseAccessibilityService != null) {
-                    setRemoteControlSwitch();
-                }
-            }
+            else if (appService.isMouseAccessibilityServiceAvailable())
+                setRemoteControlSwitch();
         }
 
         @Override
@@ -271,8 +253,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void askMediaProjectionPermission() {
-            mediaProjectionManager =
-                    (MediaProjectionManager)getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        MediaProjectionManager mediaProjectionManager = (MediaProjectionManager)
+                getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(),
                 PERM_MEDIA_PROJECTION_SERVICE);
     }
@@ -282,15 +264,14 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case PERM_MEDIA_PROJECTION_SERVICE:
                 if (resultCode == RESULT_OK) {
-                    startMediaProjection(data);
-                    startHttpServer();
-                    //getIceServers();
-                    initSignaling();
+                    if (!appService.serverStart(data, httpServerPort,
+                            isAccessibilityServiceEnabled(), getApplicationContext())) {
+                        resetStartButton();
+                        return;
+                    }
                 }
-                else {
+                else
                     resetStartButton();
-                    stopService();
-                }
                 break;
             case PERM_ACTION_ACCESSIBILITY_SERVICE:
                 if (isAccessibilityServiceEnabled())
@@ -300,43 +281,6 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
-    }
-
-    private void startMediaProjection(Intent data) {
-        videoCapturerAndroid = new ScreenCapturerAndroid(data,
-                new MediaProjection.Callback() {
-                    @Override
-                    public void onStop() {
-                        super.onStop();
-                        Log.e(TAG, "user has revoked permissions");
-                    }
-                });
-    }
-
-    private void startHttpServer() {
-        httpServer = new HttpServer(mouseAccessibilityService, httpServerPort,
-                getApplicationContext(), videoCapturerAndroid);
-        appService.setHttpServer(httpServer);
-        try {
-            appService.startHttpServer();
-        } catch (IOException e) {
-            String fmt = getResources().getString(R.string.port_in_use);
-            String errorMessage = String.format(Locale.getDefault(), fmt, httpServerPort);
-            Toast.makeText(getApplicationContext(),errorMessage, Toast.LENGTH_SHORT).show();
-            resetStartButton();
-        }
-    }
-
-    private void getIceServers() {
-        appService.getIceServers();
-    }
-
-    private void initSignaling() {
-        appService.initSignaling();
-    }
-
-    private void stopHttpServer() {
-        appService.stopHttpServer();
     }
 
     private void setStartButton() {
@@ -352,18 +296,8 @@ public class MainActivity extends AppCompatActivity {
     private void enableAccessibilityService(boolean isEnabled) {
         settingsHelper.setRemoteControlEnabled(isEnabled);
 
-        if (isEnabled) {
-            if (httpServer != null && httpServer.getMouseAccessibilityService() != null)
-                return;
-            mouseAccessibilityService = new MouseAccessibilityService();
-            mouseAccessibilityService.setContext(getApplicationContext());
-            if (httpServer != null)
-                httpServer.setMouseAccessibilityService(mouseAccessibilityService);
-        } else {
-            if (httpServer != null)
-                httpServer.setMouseAccessibilityService(null);
-            mouseAccessibilityService = null;
-        }
+        if (appService != null)
+            appService.accessibilityServiceSet(getApplicationContext(), isEnabled);
     }
 
     private boolean isAccessibilityServiceEnabled() {
@@ -532,8 +466,8 @@ public class MainActivity extends AppCompatActivity {
             httpServerPort = port;
             urlUpdate();
             if (AppService.isServiceRunning()) {
-                stopHttpServer();
-                startHttpServer();
+                if (!appService.serverRestart(httpServerPort))
+                    resetStartButton();
             }
         }
     }

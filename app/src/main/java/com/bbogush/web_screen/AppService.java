@@ -7,12 +7,13 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ServiceInfo;
+import android.media.projection.MediaProjection;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Base64;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -21,11 +22,14 @@ import androidx.core.app.NotificationCompat;
 
 import org.json.JSONObject;
 import org.webrtc.PeerConnection;
+import org.webrtc.ScreenCapturerAndroid;
+import org.webrtc.VideoCapturer;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -48,9 +52,15 @@ public class AppService extends Service {
 
     private final IBinder iBinder = new AppServiceBinder();
 
+    private VideoCapturer videoCapturerAndroid = null;
+
     private HttpServer httpServer = null;
+    private boolean isWebServerRunning = false;
+
     private List<IceServer> iceServers = null;
     List<PeerConnection.IceServer> peerIceServers = new ArrayList<>();
+
+    private MouseAccessibilityService mouseAccessibilityService = null;
 
     @Override
     public void onCreate() {
@@ -60,8 +70,7 @@ public class AppService extends Service {
 
     @Override
     public void onDestroy() {
-        stopHttpServer();
-        SignallingClient.getInstance().close();
+        serverStop();
         isRunning = false;
         Log.d(TAG, "Service destroyed");
     }
@@ -120,19 +129,69 @@ public class AppService extends Service {
         return iBinder;
     }
 
-    public void setHttpServer(HttpServer server) {
-        httpServer = server;
+    public boolean serverStart(Intent data, int port,
+                               boolean isAccessibilityServiceEnabled, Context context) {
+        startMediaProjection(data);
+        isWebServerRunning = startHttpServer(port);
+        //XXX getIceServers();
+        initSignaling();
+
+        accessibilityServiceSet(context, isAccessibilityServiceEnabled);
+
+        return isWebServerRunning;
     }
 
-    public HttpServer getHttpServer() {
-        return httpServer;
-    }
-
-    public void startHttpServer() throws IOException {
-        if (httpServer == null)
+    public void serverStop() {
+        if (!isWebServerRunning)
             return;
+        isWebServerRunning = false;
 
-        httpServer.start();
+        accessibilityServiceSet(null, false);
+
+        uninitSignaling();
+        stopHttpServer();
+        stopMediaProjection();
+    }
+
+    public boolean isServerRunning() {
+        return isWebServerRunning;
+    }
+
+    public boolean serverRestart(int port) {
+        stopHttpServer();
+        isWebServerRunning = startHttpServer(port);
+
+        return isWebServerRunning;
+    }
+
+    public void startMediaProjection(Intent data) {
+        videoCapturerAndroid = new ScreenCapturerAndroid(data,
+                new MediaProjection.Callback() {
+                    @Override
+                    public void onStop() {
+                        super.onStop();
+                        Log.e(TAG, "User has revoked media projection permissions");
+                    }
+                });
+    }
+
+    public void stopMediaProjection() {
+        videoCapturerAndroid = null;
+    }
+
+    public boolean startHttpServer(int httpServerPort) {
+        httpServer = new HttpServer(mouseAccessibilityService, httpServerPort,
+                getApplicationContext(), videoCapturerAndroid);
+        try {
+            httpServer.start();
+        } catch (IOException e) {
+            String fmt = getResources().getString(R.string.port_in_use);
+            String errorMessage = String.format(Locale.getDefault(), fmt, httpServerPort);
+            Toast.makeText(getApplicationContext(),errorMessage, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        return true;
     }
 
     public void stopHttpServer() {
@@ -140,6 +199,8 @@ public class AppService extends Service {
             return;
         httpServer.stop();
     }
+
+
 
     public void getIceServers() {
         final String API_ENDPOINT = "https://global.xirsys.net";
@@ -202,6 +263,10 @@ public class AppService extends Service {
         SignallingClient.getInstance().init(new Signaling());
     }
 
+    public void uninitSignaling() {
+        SignallingClient.getInstance().close();
+    }
+
     private class Signaling implements SignallingClient.SignalingInterface {
 
         @Override
@@ -243,5 +308,24 @@ public class AppService extends Service {
         public void onNewPeerJoined() {
 
         }
+    }
+
+    public void accessibilityServiceSet(Context context, boolean isEnabled) {
+        if (isEnabled) {
+            if (httpServer != null && httpServer.getMouseAccessibilityService() != null)
+                return;
+            mouseAccessibilityService = new MouseAccessibilityService();
+            mouseAccessibilityService.setContext(context);
+            if (httpServer != null)
+                httpServer.setMouseAccessibilityService(mouseAccessibilityService);
+        } else {
+            if (httpServer != null)
+                httpServer.setMouseAccessibilityService(null);
+            mouseAccessibilityService = null;
+        }
+    }
+
+    public boolean isMouseAccessibilityServiceAvailable() {
+        return mouseAccessibilityService != null;
     }
 }
