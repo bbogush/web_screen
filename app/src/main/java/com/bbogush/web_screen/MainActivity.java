@@ -198,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onRecordAudioPermissionGranted(boolean isGranted) {
             if (isGranted)
-                permissionHelper.requestCameraPermission();
+                startService();
             else
                 resetStartButton();
         }
