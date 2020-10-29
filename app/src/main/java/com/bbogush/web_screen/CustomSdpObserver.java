@@ -6,8 +6,6 @@ import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 
 class CustomSdpObserver implements SdpObserver {
-
-
     private String tag;
 
     CustomSdpObserver(String logTag) {
@@ -15,10 +13,10 @@ class CustomSdpObserver implements SdpObserver {
         this.tag = this.tag + " " + logTag;
     }
 
-
     @Override
     public void onCreateSuccess(SessionDescription sessionDescription) {
-        Log.d(tag, "onCreateSuccess() called with: sessionDescription = [" + sessionDescription + "]");
+        Log.d(tag, "onCreateSuccess() called with: sessionDescription = [" + sessionDescription +
+                "]");
     }
 
     @Override
@@ -35,5 +33,4 @@ class CustomSdpObserver implements SdpObserver {
     public void onSetFailure(String s) {
         Log.d(tag, "onSetFailure() called with: s = [" + s + "]");
     }
-
 }
