@@ -119,7 +119,7 @@ public class AppService extends Service {
         if (!(isWebServerRunning = startHttpServer(port)))
             return false;
 
-        webRtcManager = new WebRtcManager(intent, getApplicationContext(), httpServer);
+        webRtcManager = new WebRtcManager(intent, context, httpServer);
 
         accessibilityServiceSet(context, isAccessibilityServiceEnabled);
 

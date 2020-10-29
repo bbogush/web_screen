@@ -48,7 +48,7 @@ public class WebRtcManager {
 
     private static final boolean ENABLE_INTEL_VP8_ENCODER = true;
     private static final boolean ENABLE_H264_HIGH_PROFILE = true;
-    private static final int FRAMES_PER_SECOMD = 30;
+    private static final int FRAMES_PER_SECOND = 30;
     private static final String SDP_PARAM = "sdp";
     private static final String ICE_PARAM = "ice";
 
@@ -72,12 +72,10 @@ public class WebRtcManager {
         //XXX getIceServers();
         createMediaProjection(intent);
         initWebRTC(context);
-        //createPeerConnection();
-        initSignaling();
     }
 
     public void close() {
-        uninitSignaling();
+        localPeer.close();
         destroyMediaProjection();
     }
 
@@ -93,6 +91,12 @@ public class WebRtcManager {
     }
 
     private void destroyMediaProjection() {
+        try {
+            videoCapturer.stopCapture();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return;
+        }
         videoCapturer = null;
     }
 
@@ -116,14 +120,15 @@ public class WebRtcManager {
                 .setVideoDecoderFactory(defaultVideoDecoderFactory)
                 .createPeerConnectionFactory();
 
-        //XXX enable camera for test
+        //XXX enable camera
         //videoCapturer = createCameraCapturer(new Camera1Enumerator(false));
 
         audioConstraints = new MediaConstraints();
         videoConstraints = new MediaConstraints();
 
         SurfaceTextureHelper surfaceTextureHelper;
-        surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", rootEglBase.getEglBaseContext());
+        surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread",
+                rootEglBase.getEglBaseContext());
         VideoSource videoSource =
                 peerConnectionFactory.createVideoSource(videoCapturer.isScreencast());
         videoCapturer.initialize(surfaceTextureHelper, context, videoSource.getCapturerObserver());
@@ -139,12 +144,11 @@ public class WebRtcManager {
         display.getRealMetrics(metrics);
         if (videoCapturer != null) {
             videoCapturer.startCapture(metrics.widthPixels, metrics.heightPixels,
-                    FRAMES_PER_SECOMD);
+                    FRAMES_PER_SECOND);
         }
     }
 
     public void onTryToStart(HttpServer server) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
         createPeerConnection();
         doCall(server);
     }
@@ -157,8 +161,8 @@ public class WebRtcManager {
         rtcConfig.tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED;
         rtcConfig.bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE;
         rtcConfig.rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE;
-        rtcConfig.continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY;
-        // Use ECDSA encryption.
+        rtcConfig.continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy
+                .GATHER_CONTINUALLY;
         rtcConfig.keyType = PeerConnection.KeyType.ECDSA;
         localPeer = peerConnectionFactory.createPeerConnection(rtcConfig,
                 new CustomPeerConnectionObserver("localPeerCreation") {
@@ -170,9 +174,8 @@ public class WebRtcManager {
 
                     @Override
                     public void onAddStream(MediaStream mediaStream) {
-                        //showToast("Received Remote stream");
                         super.onAddStream(mediaStream);
-                        gotRemoteStream(mediaStream);
+                        Log.d(TAG, "Unexpected remote stream received.");
                     }
                 });
 
@@ -180,8 +183,6 @@ public class WebRtcManager {
     }
 
     public void onIceCandidateReceived(IceCandidate iceCandidate) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-
         JSONObject messageJson = new JSONObject();
         JSONObject iceJson = new JSONObject();
         try {
@@ -196,28 +197,14 @@ public class WebRtcManager {
             String messageJsonStr = messageJson.toString();
             //XXX broadcast
             server.send(messageJson.toString());
-            Log.d(TAG, "Send: " + messageJsonStr);
+            Log.d(TAG, "Send ICE candidates: " + messageJsonStr);
         } catch (Exception e) {
             e.printStackTrace();
             return;
         }
     }
 
-    private void gotRemoteStream(MediaStream stream) {
-        //we have remote video stream. add to the renderer.
-//        final VideoTrack videoTrack = stream.videoTracks.get(0);
-//        runOnUiThread(() -> {
-//            try {
-//                remoteVideoView.setVisibility(View.VISIBLE);
-//                videoTrack.addSink(remoteVideoView);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        });
-    }
-
     private void addStreamToLocalPeer() {
-        //creating local mediastream
         MediaStream stream = peerConnectionFactory.createLocalMediaStream("102");
         stream.addTrack(localAudioTrack);
         stream.addTrack(localVideoTrack);
@@ -225,7 +212,6 @@ public class WebRtcManager {
     }
 
     private void doCall(HttpServer server) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
         sdpConstraints = new MediaConstraints();
         sdpConstraints.mandatory.add(
                 new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
@@ -235,8 +221,8 @@ public class WebRtcManager {
             @Override
             public void onCreateSuccess(SessionDescription sessionDescription) {
                 super.onCreateSuccess(sessionDescription);
-                localPeer.setLocalDescription(new CustomSdpObserver("localSetLocalDesc"), sessionDescription);
-                Log.d("onCreateSuccess", "SignallingClient emit ");
+                localPeer.setLocalDescription(new CustomSdpObserver("localSetLocalDesc"),
+                        sessionDescription);
 
                 JSONObject messageJson = new JSONObject();
                 JSONObject sdpJson = new JSONObject();
@@ -258,31 +244,12 @@ public class WebRtcManager {
                     e.printStackTrace();
                     return;
                 }
-                Log.d(TAG, messageJsonStr);
+                Log.d(TAG, "Send SDP: " + messageJsonStr);
             }
         }, sdpConstraints);
     }
 
-    private void onOffer(HttpServer.Ws ws, String data) {
-        Log.d(TAG, "Offer: SDP=" + data);
-
-        String sdp;
-        try {
-            JSONObject json = new JSONObject(data);
-            sdp = json.getString("sdp");
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        localPeer.setRemoteDescription(new CustomSdpObserver("localSetRemote"),
-                new SessionDescription(SessionDescription.Type.OFFER, sdp));
-        doAnswer(ws);
-    }
-
     public void onAnswerReceived(JSONObject data) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-
         JSONObject json;
         try {
             json = data.getJSONObject(SDP_PARAM);
@@ -291,48 +258,18 @@ public class WebRtcManager {
             return;
         }
 
+        Log.d(TAG, "Remote SDP received: " + json.toString());
+
         try {
             localPeer.setRemoteDescription(new CustomSdpObserver("localSetRemote"),
                     new SessionDescription(SessionDescription.Type.fromCanonicalForm(json.getString(
                             "type").toLowerCase()), json.getString("sdp")));
-            //updateVideoViews(true);
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
 
-    private void doAnswer(HttpServer.Ws ws) {
-        localPeer.createAnswer(new CustomSdpObserver("localCreateAns") {
-            @Override
-            public void onCreateSuccess(SessionDescription sessionDescription) {
-                super.onCreateSuccess(sessionDescription);
-                localPeer.setLocalDescription(new CustomSdpObserver("localSetLocal"),
-                        sessionDescription);
-                //SignallingClient.getInstance().emitMessage(sessionDescription);
-                JSONObject obj = new JSONObject();
-                try {
-                    obj.put("type", sessionDescription.type.canonicalForm());
-                    obj.put("sdp", sessionDescription.description);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    return;
-                }
-                String jsonStr = obj.toString();
-
-                try {
-                    ws.send(jsonStr);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return;
-                }
-                Log.d(TAG, jsonStr);
-            }
-        }, new MediaConstraints());
-    }
-
     public void onIceCandidateReceived(JSONObject data) {
-        Log.d(TAG, new Object(){}.getClass().getEnclosingMethod().getName());
-
         JSONObject json;
         try {
             json = data.getJSONObject(ICE_PARAM);
@@ -340,6 +277,8 @@ public class WebRtcManager {
             e.printStackTrace();
             return;
         }
+
+        Log.d(TAG, "ICE candidate received: " + json.toString());
 
         try {
             localPeer.addIceCandidate(new IceCandidate(json.getString("id"), json.getInt("label"),
@@ -438,55 +377,4 @@ public class WebRtcManager {
             }
         });
     }
-
-    public void initSignaling() {
-        SignallingClient.getInstance().init(new Signaling());
-    }
-
-    public void uninitSignaling() {
-        SignallingClient.getInstance().close();
-    }
-
-    private class Signaling implements SignallingClient.SignalingInterface {
-
-        @Override
-        public void onRemoteHangUp(String msg) {
-
-        }
-
-        @Override
-        public void onOfferReceived(JSONObject data) {
-
-        }
-
-        @Override
-        public void onAnswerReceived(JSONObject data) {
-
-        }
-
-        @Override
-        public void onIceCandidateReceived(JSONObject data) {
-
-        }
-
-        @Override
-        public void onTryToStart() {
-
-        }
-
-        @Override
-        public void onCreatedRoom() {
-
-        }
-
-        @Override
-        public void onJoinedRoom() {
-
-        }
-
-        @Override
-        public void onNewPeerJoined() {
-
-        }
-    }
-}
+ }
