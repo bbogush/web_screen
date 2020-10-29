@@ -9,12 +9,11 @@ import org.webrtc.PeerConnection;
 import org.webrtc.RtpReceiver;
 
 class CustomPeerConnectionObserver implements PeerConnection.Observer {
-
     private String logTag;
 
-    CustomPeerConnectionObserver(String logTag) {
+    public CustomPeerConnectionObserver(String logTag) {
         this.logTag = this.getClass().getCanonicalName();
-        this.logTag = this.logTag+" "+logTag;
+        this.logTag = this.logTag + " "+logTag;
     }
 
     @Override
@@ -24,7 +23,8 @@ class CustomPeerConnectionObserver implements PeerConnection.Observer {
 
     @Override
     public void onIceConnectionChange(PeerConnection.IceConnectionState iceConnectionState) {
-        Log.d(logTag, "onIceConnectionChange() called with: iceConnectionState = [" + iceConnectionState + "]");
+        Log.d(logTag, "onIceConnectionChange() called with: iceConnectionState = [" +
+                iceConnectionState + "]");
     }
 
     @Override
@@ -34,7 +34,8 @@ class CustomPeerConnectionObserver implements PeerConnection.Observer {
 
     @Override
     public void onIceGatheringChange(PeerConnection.IceGatheringState iceGatheringState) {
-        Log.d(logTag, "onIceGatheringChange() called with: iceGatheringState = [" + iceGatheringState + "]");
+        Log.d(logTag, "onIceGatheringChange() called with: iceGatheringState = [" +
+                iceGatheringState + "]");
     }
 
     @Override
@@ -44,7 +45,8 @@ class CustomPeerConnectionObserver implements PeerConnection.Observer {
 
     @Override
     public void onIceCandidatesRemoved(IceCandidate[] iceCandidates) {
-        Log.d(logTag, "onIceCandidatesRemoved() called with: iceCandidates = [" + iceCandidates + "]");
+        Log.d(logTag, "onIceCandidatesRemoved() called with: iceCandidates = [" + iceCandidates +
+                "]");
     }
 
     @Override
@@ -69,6 +71,7 @@ class CustomPeerConnectionObserver implements PeerConnection.Observer {
 
     @Override
     public void onAddTrack(RtpReceiver rtpReceiver, MediaStream[] mediaStreams) {
-        Log.d(logTag, "onAddTrack() called with: rtpReceiver = [" + rtpReceiver + "], mediaStreams = [" + mediaStreams + "]");
+        Log.d(logTag, "onAddTrack() called with: rtpReceiver = [" + rtpReceiver +
+                "], mediaStreams = [" + mediaStreams + "]");
     }
 }
