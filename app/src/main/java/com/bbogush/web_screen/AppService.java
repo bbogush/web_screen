@@ -163,6 +163,13 @@ public class AppService extends Service {
         return true;
     }
 
+    public void stopHttpServer() {
+        if (httpServer == null)
+            return;
+        httpServer.stop();
+        httpServer = null;
+    }
+
     private HttpServer.HttpServerInterface httpServerInterface = new
             HttpServer.HttpServerInterface() {
                 @Override
@@ -261,16 +268,9 @@ public class AppService extends Service {
         return coordinates;
     }
 
-    public void stopHttpServer() {
-        if (httpServer == null)
-            return;
-        httpServer.stop();
-        httpServer = null;
-    }
-
     public void accessibilityServiceSet(Context context, boolean isEnabled) {
         if (isEnabled) {
-            if (httpServer != null && mouseAccessibilityService != null)
+            if (mouseAccessibilityService != null)
                 return;
             mouseAccessibilityService = new MouseAccessibilityService();
             mouseAccessibilityService.setContext(context);
