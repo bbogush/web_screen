@@ -187,6 +187,8 @@ public class HttpServer extends NanoWSD {
     private Response handleGet(IHTTPSession session, String uri) {
         if (uri.contentEquals("/")) {
             return handleRootRequest(session);
+        } else if (uri.contains("private")) {
+            return notFoundResponse();
         }
 
         return handleFileRequest(session, uri);
