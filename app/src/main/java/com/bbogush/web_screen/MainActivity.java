@@ -381,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
                 if (address.getAddress() instanceof Inet6Address)
                     continue;
 
-                String url = "http://" + address.getAddress().getHostAddress() + ":" +
+                String url = "https://" + address.getAddress().getHostAddress() + ":" +
                         httpServerPort;
                 TextView connectionURL = findViewById(R.id.connectionURL);
                 connectionURL.setText(url);
