@@ -13,8 +13,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import javax.net.ssl.KeyManagerFactory;
 
 import fi.iki.elonen.NanoWSD;
 
@@ -52,6 +56,25 @@ public class HttpServer extends NanoWSD {
         super(port);
         this.context = context;
         this.httpServerInterface = httpServerInterface;
+        configSecurity();
+    }
+
+    private void configSecurity() {
+        final String keyPassword = "presscott";
+        final String certPassword = "presscott";
+
+        try {
+            InputStream keyStoreStream = context.getAssets().open("private/keystore.bks");
+            KeyStore keyStore = KeyStore.getInstance("BKS");
+            keyStore.load(keyStoreStream, keyPassword.toCharArray());
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory
+                    .getDefaultAlgorithm());
+            keyManagerFactory.init(keyStore, certPassword.toCharArray());
+            makeSecure(makeSSLSocketFactory(keyStore, keyManagerFactory), null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
     }
 
     class Ws extends WebSocket {

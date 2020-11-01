@@ -40,7 +40,7 @@ function varUninit() {
 function webSocketInit() {
     console.log('WebSocket: init.');
 
-    dataWebSocket = new WebSocket('ws://' + window.location.host);
+    dataWebSocket = new WebSocket('wss://' + window.location.host);
     dataWebSocket.onopen = onWsOpen;
     dataWebSocket.onclose = onWsClose;
     dataWebSocket.onerror = onWsError;
