@@ -236,7 +236,7 @@ public class AppService extends Service {
                 public void onJoin(HttpServer server) {
                     if (webRtcManager == null)
                         return;
-                    webRtcManager.onTryToStart(server);
+                    webRtcManager.start(server);
                 }
 
                 @Override

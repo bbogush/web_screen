@@ -67,14 +67,22 @@ public class WebRtcManager {
     List<PeerConnection.IceServer> peerIceServers = new ArrayList<>();
     private List<IceServer> iceServers = null;
 
+    private Display display;
+    private DisplayMetrics screenMetrics = new DisplayMetrics();
+    private Thread rotationDetectorThread;
+
     public WebRtcManager(Intent intent, Context context, HttpServer server) {
         this.server = server;
         //XXX getIceServers();
+        WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
+        display = wm.getDefaultDisplay();
+
         createMediaProjection(intent);
         initWebRTC(context);
     }
 
     public void close() {
+        stopRotationDetector();
         localPeer.close();
         destroyMediaProjection();
     }
@@ -138,17 +146,15 @@ public class WebRtcManager {
         audioSource = peerConnectionFactory.createAudioSource(audioConstraints);
         localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource);
 
-        DisplayMetrics metrics = new DisplayMetrics();
-        WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
-        display.getRealMetrics(metrics);
+        display.getRealMetrics(screenMetrics);
         if (videoCapturer != null) {
-            videoCapturer.startCapture(metrics.widthPixels, metrics.heightPixels,
+            videoCapturer.startCapture(screenMetrics.widthPixels, screenMetrics.heightPixels,
                     FRAMES_PER_SECOND);
+            startRotationDetector();
         }
     }
 
-    public void onTryToStart(HttpServer server) {
+    public void start(HttpServer server) {
         createPeerConnection();
         doCall(server);
     }
@@ -376,5 +382,47 @@ public class WebRtcManager {
                 t.printStackTrace();
             }
         });
+    }
+
+    private void startRotationDetector() {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "Rotation detector start");
+                display.getRealMetrics(screenMetrics);
+                while (true) {
+                    DisplayMetrics metrics = new DisplayMetrics();
+                    display.getRealMetrics(metrics);
+                    if (metrics.widthPixels != screenMetrics.widthPixels ||
+                            metrics.heightPixels != screenMetrics.heightPixels) {
+                        Log.d(TAG, "Rotation detected\n" + "w=" + metrics.widthPixels + " h=" +
+                                metrics.heightPixels + " d=" + metrics.densityDpi);
+                        screenMetrics = metrics;
+                        if (videoCapturer != null) {
+                            try {
+                                videoCapturer.stopCapture();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            videoCapturer.startCapture(screenMetrics.widthPixels,
+                                    screenMetrics.heightPixels, FRAMES_PER_SECOND);
+                        }
+                    }
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        Log.d(TAG, "Rotation detector exit");
+                        Thread.interrupted();
+                        break;
+                    }
+                }
+            }
+        };
+        rotationDetectorThread = new Thread(runnable);
+        rotationDetectorThread.start();
+    }
+
+    private void stopRotationDetector() {
+        rotationDetectorThread.interrupt();
     }
  }
