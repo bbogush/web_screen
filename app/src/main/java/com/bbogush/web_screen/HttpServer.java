@@ -109,8 +109,6 @@ public class HttpServer extends NanoWSD {
 
         @Override
         protected void onMessage(WebSocketFrame message) {
-            Log.d(TAG, "Message from client: " + message.getTextPayload());
-
             JSONObject json;
 
             try {
