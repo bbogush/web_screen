@@ -166,7 +166,25 @@ public class AppService extends Service {
     public void stopHttpServer() {
         if (httpServer == null)
             return;
-        httpServer.stop();
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try  {
+                    // Run stop in thread to avoid NetworkOnMainThreadException
+                    httpServer.stop();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        thread.start();
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         httpServer = null;
     }
 
