@@ -257,6 +257,13 @@ public class AppService extends Service {
                         return;
                     webRtcManager.onIceCandidateReceived(message);
                 }
+
+                @Override
+                public void onBye() {
+                    if (webRtcManager == null)
+                        return;
+                    webRtcManager.stop();
+                }
     };
 
     private int[] getCoordinates(JSONObject json) {

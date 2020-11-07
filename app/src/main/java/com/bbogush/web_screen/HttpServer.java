@@ -45,6 +45,7 @@ public class HttpServer extends NanoWSD {
     private static final String TYPE_VALUE_JOIN = "join";
     private static final String TYPE_VALUE_SDP = "sdp";
     private static final String TYPE_VALUE_ICE = "ice";
+    private static final String TYPE_VALUE_BYE = "bye";
 
     private Context context;
     Ws webSocket = null;
@@ -159,6 +160,7 @@ public class HttpServer extends NanoWSD {
         void onJoin(HttpServer server);
         void onSdp(JSONObject message);
         void onIceCandidate(JSONObject message);
+        void onBye();
     }
 
     public void send(String message) throws IOException {
@@ -246,6 +248,9 @@ public class HttpServer extends NanoWSD {
                 break;
             case TYPE_VALUE_ICE:
                 httpServerInterface.onIceCandidate(json);
+                break;
+            case TYPE_VALUE_BYE:
+                httpServerInterface.onBye();
                 break;
         }
     }

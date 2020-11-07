@@ -60,7 +60,7 @@ public class WebRtcManager {
     private VideoTrack localVideoTrack;
     private AudioSource audioSource;
     private AudioTrack localAudioTrack;
-    private PeerConnection localPeer;
+    private PeerConnection localPeer = null;
     private MediaConstraints sdpConstraints;
     private HttpServer server;
 
@@ -69,7 +69,7 @@ public class WebRtcManager {
 
     private Display display;
     private DisplayMetrics screenMetrics = new DisplayMetrics();
-    private Thread rotationDetectorThread;
+    private Thread rotationDetectorThread = null;
 
     public WebRtcManager(Intent intent, Context context, HttpServer server) {
         this.server = server;
@@ -82,8 +82,8 @@ public class WebRtcManager {
     }
 
     public void close() {
+        stop();
         stopRotationDetector();
-        localPeer.close();
         destroyMediaProjection();
     }
 
@@ -155,8 +155,17 @@ public class WebRtcManager {
     }
 
     public void start(HttpServer server) {
+        Log.d(TAG, "WebRTC start");
         createPeerConnection();
         doCall(server);
+    }
+
+    public void stop() {
+        Log.d(TAG, "WebRTC stop");
+        if (localPeer == null)
+            return;
+        localPeer.close();
+        localPeer = null;
     }
 
     private void createPeerConnection() {
