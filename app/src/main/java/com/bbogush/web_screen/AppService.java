@@ -209,27 +209,32 @@ public class AppService extends Service {
 
                 @Override
                 public void onButtonBack() {
-                    mouseAccessibilityService.backButtonClick();
+                    if (mouseAccessibilityService != null)
+                        mouseAccessibilityService.backButtonClick();
                 }
 
                 @Override
                 public void onButtonHome() {
-                    mouseAccessibilityService.homeButtonClick();
+                    if (mouseAccessibilityService != null)
+                        mouseAccessibilityService.homeButtonClick();
                 }
 
                 @Override
                 public void onButtonRecent() {
-                    mouseAccessibilityService.recentButtonClick();
+                    if (mouseAccessibilityService != null)
+                        mouseAccessibilityService.recentButtonClick();
                 }
 
                 @Override
                 public void onButtonPower() {
-                    mouseAccessibilityService.powerButtonClick();
+                    if (mouseAccessibilityService != null)
+                        mouseAccessibilityService.powerButtonClick();
                 }
 
                 @Override
                 public void onButtonLock() {
-                    mouseAccessibilityService.lockButtonClick();
+                    if (mouseAccessibilityService != null)
+                        mouseAccessibilityService.lockButtonClick();
                 }
 
                 @Override
