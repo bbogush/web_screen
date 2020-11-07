@@ -143,8 +143,8 @@ public class WebRtcManager {
 
         localVideoTrack = peerConnectionFactory.createVideoTrack("100", videoSource);
 
-        audioSource = peerConnectionFactory.createAudioSource(audioConstraints);
-        localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource);
+        //TODO audioSource = peerConnectionFactory.createAudioSource(audioConstraints);
+        //TODO localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource);
 
         display.getRealMetrics(screenMetrics);
         if (videoCapturer != null) {
@@ -221,15 +221,15 @@ public class WebRtcManager {
 
     private void addStreamToLocalPeer() {
         MediaStream stream = peerConnectionFactory.createLocalMediaStream("102");
-        stream.addTrack(localAudioTrack);
+        //TODO stream.addTrack(localAudioTrack);
         stream.addTrack(localVideoTrack);
         localPeer.addStream(stream);
     }
 
     private void doCall(HttpServer server) {
         sdpConstraints = new MediaConstraints();
-        sdpConstraints.mandatory.add(
-                new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+        //TODO sdpConstraints.mandatory.add(
+        //        new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
         sdpConstraints.mandatory.add(
                 new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
         localPeer.createOffer(new CustomSdpObserver("localCreateOffer") {

@@ -176,8 +176,10 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onForegroundServicePermissionGranted(boolean isGranted) {
-            if (isGranted)
-                permissionHelper.requestRecordAudioPermission();
+            if (isGranted) {
+                //TODO permissionHelper.requestRecordAudioPermission();
+                startService();
+            }
             else
                 resetStartButton();
         }
