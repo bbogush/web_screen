@@ -88,6 +88,7 @@ public class HttpServer extends NanoWSD {
 
         @Override
         protected void onOpen() {
+            Log.d(TAG, "WebSocket open");
             TimerTask timerTask = new TimerTask() {
                 @Override
                 public void run() {
@@ -105,7 +106,9 @@ public class HttpServer extends NanoWSD {
         @Override
         protected void onClose(WebSocketFrame.CloseCode code, String reason,
                                boolean initiatedByRemote) {
+            Log.d(TAG, "WebSocket close");
             pingTimer.cancel();
+            httpServerInterface.onWebSocketClose();
         }
 
         @Override
@@ -128,7 +131,7 @@ public class HttpServer extends NanoWSD {
 
         @Override
         protected void onException(IOException exception) {
-            exception.printStackTrace();
+            Log.d(TAG, "WebSocket exception");
         }
     }
 
@@ -161,6 +164,7 @@ public class HttpServer extends NanoWSD {
         void onSdp(JSONObject message);
         void onIceCandidate(JSONObject message);
         void onBye();
+        void onWebSocketClose();
     }
 
     public void send(String message) throws IOException {

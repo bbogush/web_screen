@@ -264,6 +264,13 @@ public class AppService extends Service {
                         return;
                     webRtcManager.stop();
                 }
+
+                @Override
+                public void onWebSocketClose() {
+                    if (webRtcManager == null)
+                        return;
+                    webRtcManager.stop();
+                }
     };
 
     private int[] getCoordinates(JSONObject json) {
