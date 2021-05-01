@@ -1,0 +1,2 @@
+keytool -genkey -keyalg RSA -alias selfsigned -keystore keystore.bks -storepass password -validity 9999 -keysize 2048 -ext SAN=DNS:localhost,IP:127.0.0.1 -storetype BKS -provider org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath /usr/share/java/bcprov-jdk16-1.46.jar
+keytool -providerpath /usr/share/java/bcprov-jdk16-1.46.jar -providerclass org.bouncycastle.jce.provider.BouncyCastleProvider -keystore keystore.bks -storepass password -storetype BKS -list
